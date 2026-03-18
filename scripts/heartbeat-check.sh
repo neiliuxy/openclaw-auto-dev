@@ -7,8 +7,36 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
+# 错误处理函数
+error_exit() {
+    echo "❌ 错误：$1" >&2
+    # 生成错误报告
+    cat > "$PROJECT_ROOT/scan-result.json" <<EOF
+{
+  "timestamp": "$(date -Iseconds)",
+  "status": "error",
+  "message": "$1"
+}
+EOF
+    exit 1
+}
+
+# 检查依赖
+if ! command -v gh &> /dev/null; then
+    error_exit "GitHub CLI (gh) 未安装"
+fi
+
+if ! command -v jq &> /dev/null; then
+    error_exit "jq 未安装"
+fi
+
+# 检查 GitHub 认证
+if ! gh auth status &> /dev/null; then
+    error_exit "GitHub 未认证，请运行 'gh auth login'"
+fi
+
 # 执行扫描
-"$SCRIPT_DIR/scan-issues.sh"
+"$SCRIPT_DIR/scan-issues.sh" || error_exit "扫描脚本执行失败"
 
 # 读取扫描结果
 REPORT_FILE="$PROJECT_ROOT/scan-result.json"

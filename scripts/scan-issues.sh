@@ -25,16 +25,38 @@ generate_report() {
     local issue_number="$3"
     local issue_title="$4"
     
-    cat > "$REPORT_FILE" <<EOF
-{
-    "timestamp": "$(date -Iseconds)",
-    "status": "$status",
-    "message": "$message",
-    "issue_number": $([ -n "$issue_number" ] && echo "$issue_number" || echo "null"),
-    "issue_title": $([ -n "$issue_title" ] && echo "\"$issue_title\"" || echo "null"),
-    "scan_log": "$LOG_FILE"
-}
-EOF
+    # 使用 jq 正确转义 JSON 字符串
+    if [ -n "$issue_number" ]; then
+        jq -n \
+            --arg timestamp "$(date -Iseconds)" \
+            --arg status "$status" \
+            --arg message "$message" \
+            --argjson issue_number "$issue_number" \
+            --arg issue_title "$issue_title" \
+            --arg scan_log "$LOG_FILE" \
+            '{
+                timestamp: $timestamp,
+                status: $status,
+                message: $message,
+                issue_number: $issue_number,
+                issue_title: $issue_title,
+                scan_log: $scan_log
+            }' > "$REPORT_FILE"
+    else
+        jq -n \
+            --arg timestamp "$(date -Iseconds)" \
+            --arg status "$status" \
+            --arg message "$message" \
+            --arg scan_log "$LOG_FILE" \
+            '{
+                timestamp: $timestamp,
+                status: $status,
+                message: $message,
+                issue_number: null,
+                issue_title: null,
+                scan_log: $scan_log
+            }' > "$REPORT_FILE"
+    fi
 }
 
 log "🔍 开始扫描 GitHub Issue..."
