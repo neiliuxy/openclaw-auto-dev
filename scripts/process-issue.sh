@@ -190,15 +190,30 @@ EOF
         ;;
 esac
 
-# 步骤 5: 提交更改
+# 步骤 5: 验证变更
+log "🔍 验证变更..."
+VALIDATION_SCRIPT="$SCRIPT_DIR/validate-changes.sh"
+if [ -x "$VALIDATION_SCRIPT" ]; then
+    if ! "$VALIDATION_SCRIPT" "$ISSUE_NUMBER"; then
+        log "❌ 验证失败，中止提交"
+        # 恢复更改
+        git reset --hard HEAD
+        error_exit "变更验证失败"
+    fi
+    log "✅ 验证通过"
+else
+    log "⚠️ 验证脚本不存在或不可执行，跳过验证"
+fi
+
+# 步骤 6: 提交更改
 log "📦 提交更改..."
 git commit -m "$COMMIT_MSG"
 
-# 步骤 6: 推送到远程分支
+# 步骤 7: 推送到远程分支
 log "📤 推送到远程分支..."
 git push -u origin "$BRANCH_NAME"
 
-# 步骤 7: 创建 PR
+# 步骤 8: 创建 PR
 log "🔀 创建 Pull Request..."
 PR_TITLE=$(gh pr create \
     --title "Fix: $ISSUE_TITLE" \
@@ -227,14 +242,14 @@ else
     PR_NUMBER="unknown"
 fi
 
-# 步骤 8: 更新 Issue 标签为 pr-created
+# 步骤 9: 更新 Issue 标签为 pr-created
 log "🏷️ 更新 Issue 标签为 openclaw-pr-created..."
 gh issue edit "$ISSUE_NUMBER" \
     --remove-label "openclaw-processing" \
     --add-label "openclaw-pr-created" \
     --repo "$REPO"
 
-# 步骤 9: 自动合并 PR
+# 步骤 10: 自动合并 PR
 log "🔀 等待 CI 检查（3 秒）..."
 sleep 3
 
@@ -266,18 +281,18 @@ if [ "$MERGE_STATUS" != "true" ]; then
     log "⚠️ 继续执行后续步骤..."
 fi
 
-# 步骤 10: 更新 Issue 标签为 completed
+# 步骤 11: 更新 Issue 标签为 completed
 log "🏷️ 更新 Issue 标签为 openclaw-completed..."
 gh issue edit "$ISSUE_NUMBER" \
     --remove-label "openclaw-pr-created" 2>/dev/null || true \
     --add-label "openclaw-completed" \
     --repo "$REPO"
 
-# 步骤 11: 关闭 Issue
+# 步骤 12: 关闭 Issue
 log "✅ 关闭 Issue..."
 gh issue close "$ISSUE_NUMBER" --repo "$REPO"
 
-# 步骤 12: 删除远程分支
+# 步骤 13: 删除远程分支
 log "🧹 清理分支..."
 git checkout master
 git pull origin master
