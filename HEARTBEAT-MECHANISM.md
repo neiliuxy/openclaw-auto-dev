@@ -84,20 +84,28 @@ cd /home/admin/.openclaw/workspace/openclaw-auto-dev
 
 ---
 
-## Issue 状态流转
+## Issue 状态流转（全自动）
 
 ```
 openclaw-new          → 新创建的 Issue，等待处理
-     ↓
-openclaw-processing   → 正在处理中（避免重复扫描）
-     ↓
+     ↓ (自动)
+openclaw-processing   → 正在处理中（分支创建，开发中）
+     ↓ (自动)
 openclaw-pr-created   → PR 已创建，等待合并
-     ↓
-openclaw-completed    → 已完成（PR 已合并）
+     ↓ (自动合并)
+openclaw-completed    → 已完成（PR 已合并，Issue 已关闭）
 ```
 
 **异常状态**:
 - `openclaw-error` → 处理失败，需要人工介入
+
+**自动化流程**:
+1. ✅ 发现 `openclaw-new` Issue → 自动创建分支
+2. ✅ 更新标签为 `openclaw-processing` → 开始开发
+3. ✅ 完成开发 → 提交并推送
+4. ✅ 创建 PR → 更新标签为 `openclaw-pr-created`
+5. ✅ 自动合并 PR → 更新标签为 `openclaw-completed`
+6. ✅ 关闭 Issue → 清理分支
 
 ---
 

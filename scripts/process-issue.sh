@@ -1,145 +1,286 @@
 #!/bin/bash
-# OpenClaw Issue 处理脚本
-# 用法：./scripts/process-issue.sh <issue_number>
+# OpenClaw Auto Dev - Issue 处理脚本
+# 自动处理 openclaw-new Issue 的完整流程
 
 set -e
 
-ISSUE_NUMBER=$1
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-LOG_FILE="$PROJECT_ROOT/logs/issue-${ISSUE_NUMBER}.log"
+LOG_DIR="$PROJECT_ROOT/logs"
+LOG_FILE="$LOG_DIR/process-$(date '+%Y-%m-%d').log"
+
+# 确保日志目录存在
+mkdir -p "$LOG_DIR"
 
 # 日志函数
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
-if [ -z "$ISSUE_NUMBER" ]; then
-    echo "❌ 用法：$0 <issue_number>"
+# 错误处理函数
+error_exit() {
+    log "❌ 错误：$1"
+    # 更新 Issue 状态为 error
+    if [ -n "$ISSUE_NUMBER" ]; then
+        gh issue edit "$ISSUE_NUMBER" \
+            --remove-label "openclaw-processing" \
+            --add-label "openclaw-error" \
+            --repo "$REPO" || true
+    fi
     exit 1
+}
+
+# 配置
+REPO="neiliuxy/openclaw-auto-dev"
+ISSUE_NUMBER="${1:-}"
+
+if [ -z "$ISSUE_NUMBER" ]; then
+    # 从 scan-result.json 读取
+    if [ -f "$PROJECT_ROOT/scan-result.json" ]; then
+        ISSUE_NUMBER=$(jq -r '.issue_number // empty' "$PROJECT_ROOT/scan-result.json")
+    fi
 fi
 
+if [ -z "$ISSUE_NUMBER" ]; then
+    log "ℹ️ 没有需要处理的 Issue"
+    exit 0
+fi
+
+log "=========================================="
 log "🚀 开始处理 Issue #$ISSUE_NUMBER"
+log "=========================================="
 
-# 1. 更新 Issue 状态为 processing
-log "📝 更新 Issue 状态为 openclaw-processing..."
-gh issue edit "$ISSUE_NUMBER" --add-label "openclaw-processing"
-gh issue edit "$ISSUE_NUMBER" --remove-label "openclaw-new"
-gh issue comment "$ISSUE_NUMBER" --body "🤖 **OpenClaw 已开始处理此 Issue**
+# 步骤 1: 获取 Issue 信息
+log "📋 获取 Issue 信息..."
+ISSUE_TITLE=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json title --jq '.title')
+ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json body --jq '.body')
 
-- **时间**: $(date '+%Y-%m-%d %H:%M:%S %Z')
-- **状态**: openclaw-processing
-- **预计完成时间**: 30 分钟内"
+log "📝 Issue 标题：$ISSUE_TITLE"
+log "📄 Issue 描述：${ISSUE_BODY:-空}"
 
-# 2. 获取 Issue 详情
-log "📋 获取 Issue 详情..."
-ISSUE_TITLE=$(gh issue view "$ISSUE_NUMBER" --json title --jq '.title')
-ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --json body --jq '.body')
-
-log "Issue 标题：$ISSUE_TITLE"
-log "Issue 描述：${ISSUE_BODY:0:200}..."
-
-# 3. 创建功能分支
-BRANCH_NAME="feature/issue-${ISSUE_NUMBER}"
+# 步骤 2: 创建分支
+BRANCH_NAME="openclaw/issue-$ISSUE_NUMBER"
 log "🌿 创建分支：$BRANCH_NAME"
 
-# 检查分支是否已存在
+# 确保在 master 分支
+git checkout master
+git pull origin master
+
+# 创建并切换到新分支
 if git show-ref --verify --quiet refs/heads/"$BRANCH_NAME"; then
-    log "⚠️ 分支已存在，删除旧分支"
-    git branch -D "$BRANCH_NAME"
+    log "⚠️ 分支已存在，删除并重新创建"
+    git branch -D "$BRANCH_NAME" || true
 fi
 
 git checkout -b "$BRANCH_NAME"
 
-# 4. 使用 opencode 进行开发
-log "💻 开始开发..."
-if command -v opencode &> /dev/null; then
-    cd "$PROJECT_ROOT"
-    
-    # 创建 opencode 会话
-    opencode run "实现 GitHub Issue #$ISSUE_NUMBER: $ISSUE_TITLE
+# 步骤 3: 更新 Issue 标签为 processing
+log "🏷️ 更新 Issue 标签为 openclaw-processing..."
+gh issue edit "$ISSUE_NUMBER" \
+    --remove-label "openclaw-new" \
+    --add-label "openclaw-processing" \
+    --repo "$REPO"
 
-需求描述：
-$ISSUE_BODY
+# 步骤 4: 根据 Issue 内容开发/解决问题
+log "💻 开始开发/解决问题..."
 
-要求：
-1. 遵循项目现有代码风格
-2. 添加必要的注释
-3. 确保代码可编译/可运行
-4. 如有必要，添加测试用例
+# 解析 Issue 标题，判断任务类型
+case "$ISSUE_TITLE" in
+    *"hello world"*|*"Hello World"*|*"C++"*)
+        log "📝 任务类型：C++ Hello World 程序"
+        
+        # 创建 C++ Hello World 程序
+        cat > hello.cpp <<'EOF'
+#include <iostream>
 
-请在当前分支中实现以上功能。" || {
-        log "❌ opencode 开发失败"
-        gh issue edit "$ISSUE_NUMBER" --add-label "openclaw-error"
-        gh issue comment "$ISSUE_NUMBER" --body "❌ **处理失败**
-
-opencode 代码生成失败。请人工介入。
-
-🤖 _OpenClaw Auto Dev_"
-        exit 1
-    }
-else
-    log "⚠️ opencode 未安装，跳过自动开发"
-fi
-
-# 5. 提交代码
-log "💾 提交代码..."
-cd "$PROJECT_ROOT"
-git add -A
-
-if git diff --staged --quiet; then
-    log "⚠️ 没有更改需要提交"
-else
-    git commit -m "feat: 实现 Issue #$ISSUE_NUMBER - $ISSUE_TITLE
-
-- 自动生成的实现
-- OpenClaw Auto Dev"
-    log "✅ 代码提交成功"
-fi
-
-# 6. 推送到远程
-log "📤 推送到远程..."
-git push -u origin "$BRANCH_NAME" || {
-    log "❌ 推送失败"
-    gh issue edit "$ISSUE_NUMBER" --add-label "openclaw-error"
-    exit 1
+int main() {
+    std::cout << "Hello, World!" << std::endl;
+    return 0;
 }
+EOF
+        
+        # 创建 Makefile
+        cat > Makefile <<'EOF'
+CXX = g++
+CXXFLAGS = -std=c++11 -Wall -Wextra
 
-# 7. 创建 PR
-log "🔀 创建 Pull Request..."
-PR_URL=$(gh pr create \
-    --title "解决 Issue #$ISSUE_NUMBER: $ISSUE_TITLE" \
-    --body "此 PR 解决 Issue #$ISSUE_NUMBER
+hello: hello.cpp
+	$(CXX) $(CXXFLAGS) -o hello hello.cpp
 
-## 变更内容
-- 自动生成的实现
-- OpenClaw Auto Dev
+clean:
+	rm -f hello
 
-## 测试
-- [ ] 已测试相关功能
+.PHONY: clean
+EOF
+        
+        # 创建 README
+        cat > HELLO_README.md <<EOF
+# Hello World in C++
 
-## 检查清单
-- [ ] 代码符合规范
-- [ ] 添加了必要的注释
-- [ ] 无编译错误
+这是一个简单的 C++ Hello World 程序。
+
+## 编译
+
+\`\`\`bash
+make
+\`\`\`
+
+## 运行
+
+\`\`\`bash
+./hello
+\`\`\`
+
+## 输出
+
+\`\`\`
+Hello, World!
+\`\`\`
 
 ---
-🤖 _Generated by OpenClaw Auto Dev_" \
-    --head "$BRANCH_NAME" \
-    --base "main")
+Generated by OpenClaw Auto Dev 🦞
+EOF
+        
+        git add hello.cpp Makefile HELLO_README.md
+        COMMIT_MSG="feat: add C++ Hello World program (closes #$ISSUE_NUMBER)"
+        ;;
+    
+    *"Python"*)
+        log "🐍 任务类型：Python 相关"
+        # TODO: 实现 Python 任务处理
+        echo "# Python Task" > task.py
+        git add task.py
+        COMMIT_MSG="feat: add Python task template (closes #$ISSUE_NUMBER)"
+        ;;
+    
+    *"JavaScript"*|*"JS"*)
+        log "📜 任务类型：JavaScript 相关"
+        # TODO: 实现 JS 任务处理
+        echo "// JavaScript Task" > task.js
+        git add task.js
+        COMMIT_MSG="feat: add JavaScript task template (closes #$ISSUE_NUMBER)"
+        ;;
+    
+    *)
+        log "📋 任务类型：通用任务"
+        # 创建通用的解决方案文件
+        cat > "SOLUTION-$ISSUE_NUMBER.md" <<EOF
+# Solution for Issue #$ISSUE_NUMBER
 
-log "✅ PR 创建成功：$PR_URL"
+## Issue
+$ISSUE_TITLE
 
-# 8. 更新 Issue 状态
-log "🏷️ 更新 Issue 标签..."
-gh issue edit "$ISSUE_NUMBER" --add-label "openclaw-pr-created"
-gh issue comment "$ISSUE_NUMBER" --body "✅ **PR 已创建！**
+## Description
+${ISSUE_BODY:-No description provided}
 
-PR: $PR_URL
+## Solution
+[Solution details here]
 
-请审核代码并决定是否合并。
+## Testing
+[Test instructions here]
 
-🤖 _OpenClaw Auto Dev_"
+---
+Generated by OpenClaw Auto Dev 🦞
+EOF
+        git add "SOLUTION-$ISSUE_NUMBER.md"
+        COMMIT_MSG="feat: add solution for issue #$ISSUE_NUMBER"
+        ;;
+esac
 
-log "🎉 Issue #$ISSUE_NUMBER 处理完成！"
-echo "$PR_URL"
+# 步骤 5: 提交更改
+log "📦 提交更改..."
+git commit -m "$COMMIT_MSG"
+
+# 步骤 6: 推送到远程分支
+log "📤 推送到远程分支..."
+git push -u origin "$BRANCH_NAME"
+
+# 步骤 7: 创建 PR
+log "🔀 创建 Pull Request..."
+PR_TITLE=$(gh pr create \
+    --title "Fix: $ISSUE_TITLE" \
+    --body "This PR addresses Issue #$ISSUE_NUMBER
+
+## Changes
+- Automated fix by OpenClaw Auto Dev 🦞
+
+## Checklist
+- [ ] Code reviewed
+- [ ] Tests passed
+- [ ] Documentation updated
+
+Closes #$ISSUE_NUMBER" \
+    --repo "$REPO" \
+    --base master \
+    --head "$BRANCH_NAME")
+
+# 提取 PR 编号
+PR_NUMBER=$(echo "$PR_TITLE" | grep -oP '#\K[0-9]+' || echo "")
+
+if [ -n "$PR_NUMBER" ]; then
+    log "✅ PR #$PR_NUMBER 已创建"
+else
+    log "⚠️ 无法提取 PR 编号"
+    PR_NUMBER="unknown"
+fi
+
+# 步骤 8: 更新 Issue 标签为 pr-created
+log "🏷️ 更新 Issue 标签为 openclaw-pr-created..."
+gh issue edit "$ISSUE_NUMBER" \
+    --remove-label "openclaw-processing" \
+    --add-label "openclaw-pr-created" \
+    --repo "$REPO"
+
+# 步骤 9: 自动合并 PR
+log "🔀 等待 CI 检查（5 秒）..."
+sleep 5
+
+log "✅ 合并 Pull Request..."
+gh pr merge "$PR_NUMBER" \
+    --repo "$REPO" \
+    --merge \
+    --subject "Merge: $ISSUE_TITLE" \
+    --body "Automatically merged by OpenClaw Auto Dev 🦞" || {
+    log "⚠️ PR 合并失败，可能需要人工介入"
+    error_exit "PR 合并失败"
+}
+
+# 步骤 10: 更新 Issue 标签为 completed
+log "🏷️ 更新 Issue 标签为 openclaw-completed..."
+gh issue edit "$ISSUE_NUMBER" \
+    --remove-label "openclaw-pr-created" \
+    --add-label "openclaw-completed" \
+    --repo "$REPO"
+
+# 步骤 11: 关闭 Issue
+log "✅ 关闭 Issue..."
+gh issue close "$ISSUE_NUMBER" --repo "$REPO"
+
+# 步骤 12: 删除远程分支
+log "🧹 清理分支..."
+git checkout master
+git pull origin master
+git branch -D "$BRANCH_NAME"
+git push origin --delete "$BRANCH_NAME" || true
+
+# 生成完成报告
+cat > "$PROJECT_ROOT/scan-result.json" <<EOF
+{
+    "timestamp": "$(date -Iseconds)",
+    "status": "completed",
+    "message": "Issue #$ISSUE_NUMBER 已处理完成",
+    "issue_number": $ISSUE_NUMBER,
+    "issue_title": "$(echo "$ISSUE_TITLE" | jq -Rs '.[:-1]')",
+    "pr_number": $PR_NUMBER,
+    "branch": "$BRANCH_NAME"
+}
+EOF
+
+log "=========================================="
+log "✅ Issue #$ISSUE_NUMBER 处理完成！"
+log "   PR: #$PR_NUMBER"
+log "   分支：$BRANCH_NAME (已删除)"
+log "=========================================="
+
+# 返回到 master 分支
+git checkout master

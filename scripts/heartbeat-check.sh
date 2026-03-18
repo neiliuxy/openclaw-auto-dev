@@ -1,5 +1,5 @@
 #!/bin/bash
-# OpenClaw Auto Dev - 心跳检查 + 通知脚本
+# OpenClaw Auto Dev - 心跳检查 + 自动处理脚本
 # 用法：./scripts/heartbeat-check.sh
 
 set -e
@@ -37,6 +37,17 @@ fi
 
 # 执行扫描
 "$SCRIPT_DIR/scan-issues.sh" || error_exit "扫描脚本执行失败"
+
+# 检查是否有新 Issue 需要处理
+if [ -f "$PROJECT_ROOT/scan-result.json" ]; then
+    STATUS=$(jq -r '.status' "$PROJECT_ROOT/scan-result.json")
+    ISSUE_NUMBER=$(jq -r '.issue_number // empty' "$PROJECT_ROOT/scan-result.json")
+    
+    if [ "$STATUS" = "new_issue" ] && [ -n "$ISSUE_NUMBER" ]; then
+        echo "🚀 发现新 Issue #$ISSUE_NUMBER，开始自动处理..."
+        "$SCRIPT_DIR/process-issue.sh" "$ISSUE_NUMBER"
+    fi
+fi
 
 # 读取扫描结果
 REPORT_FILE="$PROJECT_ROOT/scan-result.json"
