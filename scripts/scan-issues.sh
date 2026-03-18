@@ -45,7 +45,7 @@ log "🎉 发现新 Issue: $new_issues"
 # 获取第一个 Issue 的编号
 issue_number=$(echo "$new_issues" | jq -r '.[0].number')
 
-if [ -n "$issue_number" ]; then
+if [ -n "$issue_number" ] && [ "$issue_number" != "null" ]; then
     log "🎯 准备处理 Issue #$issue_number"
     
     # 输出到临时文件，供后续处理
@@ -56,6 +56,6 @@ if [ -n "$issue_number" ]; then
     # 在这里可以调用 process-issue.sh 脚本
     # "$SCRIPT_DIR/process-issue.sh" "$issue_number"
 else
-    log "❌ 无法获取 Issue 编号"
-    exit 1
+    log "ℹ️ 无有效 Issue 需要处理"
+    exit 0
 fi
