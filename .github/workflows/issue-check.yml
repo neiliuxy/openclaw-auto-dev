@@ -1,0 +1,69 @@
+# OpenClaw Auto Dev - Issue 检查定时任务
+# 每 30 分钟检查一次新的 openclaw-new Issue
+
+name: Issue Check
+
+on:
+  schedule:
+    # 每 30 分钟执行一次（每小时的 0 分和 30 分）
+    - cron: '0,30 * * * *'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  check-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup GitHub CLI
+        uses: cli/cli-action@v2
+
+      - name: Check for processing issues
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # 检查是否有正在处理的 Issue
+          processing=$(gh issue list --state open --label "openclaw-processing" --limit 1)
+          
+          if [ -n "$processing" ]; then
+            echo "⚠️ 已有 Issue 在处理中，跳过本次检查"
+            exit 0
+          fi
+          
+          echo "✅ 没有正在处理的 Issue"
+
+      - name: Check for new issues
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # 查询 openclaw-new 状态的 Issue
+          new_issues=$(gh issue list --state open --label "openclaw-new" --json number,title,createdAt --limit 1)
+          
+          if [ -z "$new_issues" ]; then
+            echo "ℹ️ 无新 Issue"
+            exit 0
+          fi
+          
+          echo "📬 发现新 Issue: $new_issues"
+          
+          # 获取第一个 Issue 的编号
+          issue_number=$(echo "$new_issues" | jq -r '.[0].number')
+          
+          if [ -n "$issue_number" ]; then
+            echo "🎯 准备处理 Issue #$issue_number"
+            # 输出到文件供 OpenClaw 读取
+            echo "$issue_number" > /tmp/openclaw_issue_number.txt
+          fi
+
+      - name: Trigger OpenClaw (optional)
+        if: env.issue_number != ''
+        env:
+          OPENCLAW_WEBHOOK_URL: ${{ secrets.OPENCLAW_WEBHOOK_URL }}
+        run: |
+          # 如果配置了 Webhook，通知 OpenClaw
+          if [ -n "$OPENCLAW_WEBHOOK_URL" ]; then
+            curl -X POST "$OPENCLAW_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d "{\"issue_number\": $issue_number, \"action\": \"process\"}"
+          fi

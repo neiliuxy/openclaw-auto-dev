@@ -1,0 +1,56 @@
+# PR 合并后自动更新 Issue 状态
+
+name: PR Merge Handler
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  update-issue-status:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup GitHub CLI
+        uses: cli/cli-action@v2
+
+      - name: Extract issue number from branch
+        id: extract
+        run: |
+          branch_name="${{ github.event.pull_request.head.ref }}"
+          # 从分支名提取 Issue 编号 (如 feature/issue-123 → 123)
+          issue_number=$(echo "$branch_name" | grep -oE '[0-9]+' | head -1)
+          echo "issue_number=$issue_number" >> $GITHUB_OUTPUT
+          echo "📌 从分支 '$branch_name' 提取 Issue 编号：$issue_number"
+
+      - name: Update issue status
+        if: steps.extract.outputs.issue_number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          ISSUE_NUMBER: ${{ steps.extract.outputs.issue_number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "🔄 更新 Issue #${ISSUE_NUMBER} 状态..."
+          
+          # 移除 processing 标签
+          gh issue edit "$ISSUE_NUMBER" --remove-label "openclaw-processing" || true
+          
+          # 移除 pr-created 标签
+          gh issue edit "$ISSUE_NUMBER" --remove-label "openclaw-pr-created" || true
+          
+          # 添加 completed 标签
+          gh issue edit "$ISSUE_NUMBER" --add-label "openclaw-completed"
+          
+          # 添加完成评论
+          gh issue comment "$ISSUE_NUMBER" --body "✅ **已完成！**
+
+          PR #${PR_NUMBER} 已合并。
+          
+          🤖 _OpenClaw Auto Dev_"
+
+      - name: Log completion
+        run: |
+          echo "✅ Issue #${{ steps.extract.outputs.issue_number }} 已完成处理"
