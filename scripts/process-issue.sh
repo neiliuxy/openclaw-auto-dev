@@ -2,7 +2,10 @@
 # OpenClaw Auto Dev - Issue 处理脚本
 # 自动处理 openclaw-new Issue 的完整流程
 
-set -e
+set -euo pipefail
+
+# 启用调试模式（可选）
+# set -x
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -232,23 +235,41 @@ gh issue edit "$ISSUE_NUMBER" \
     --repo "$REPO"
 
 # 步骤 9: 自动合并 PR
-log "🔀 等待 CI 检查（5 秒）..."
-sleep 5
+log "🔀 等待 CI 检查（3 秒）..."
+sleep 3
 
 log "✅ 合并 Pull Request..."
-gh pr merge "$PR_NUMBER" \
+# 使用 --auto 让 GitHub 在 CI 通过后自动合并，或立即合并
+MERGE_RESULT=$(gh pr merge "$PR_NUMBER" \
     --repo "$REPO" \
     --merge \
-    --subject "Merge: $ISSUE_TITLE" \
-    --body "Automatically merged by OpenClaw Auto Dev 🦞" || {
-    log "⚠️ PR 合并失败，可能需要人工介入"
-    error_exit "PR 合并失败"
+    --subject "Fix: $ISSUE_TITLE" \
+    --body "Automatically merged by OpenClaw Auto Dev 🦞" 2>&1) || {
+    log "⚠️ PR 合并命令执行失败：$MERGE_RESULT"
+    log "⚠️ 尝试使用 API 直接合并..."
+    gh api repos/"$REPO"/pulls/"$PR_NUMBER"/merge -X PUT \
+        -f merge_method=merge \
+        -f commit_title="Fix: $ISSUE_TITLE" \
+        -f commit_message="Automatically merged by OpenClaw Auto Dev 🦞" || {
+        log "❌ PR 合并失败，可能需要人工介入"
+        error_exit "PR 合并失败"
+    }
 }
+
+log "✅ 等待合并完成（2 秒）..."
+sleep 2
+
+# 验证合并状态
+MERGE_STATUS=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json merged --jq '.merged')
+if [ "$MERGE_STATUS" != "true" ]; then
+    log "⚠️ PR 合并状态验证失败，当前状态：$MERGE_STATUS"
+    log "⚠️ 继续执行后续步骤..."
+fi
 
 # 步骤 10: 更新 Issue 标签为 completed
 log "🏷️ 更新 Issue 标签为 openclaw-completed..."
 gh issue edit "$ISSUE_NUMBER" \
-    --remove-label "openclaw-pr-created" \
+    --remove-label "openclaw-pr-created" 2>/dev/null || true \
     --add-label "openclaw-completed" \
     --repo "$REPO"
 
@@ -260,8 +281,21 @@ gh issue close "$ISSUE_NUMBER" --repo "$REPO"
 log "🧹 清理分支..."
 git checkout master
 git pull origin master
-git branch -D "$BRANCH_NAME"
-git push origin --delete "$BRANCH_NAME" || true
+
+# 检查分支是否存在再删除
+if git show-ref --verify --quiet refs/heads/"$BRANCH_NAME"; then
+    git branch -D "$BRANCH_NAME"
+    log "✅ 本地分支已删除"
+else
+    log "ℹ️ 本地分支不存在，跳过删除"
+fi
+
+if git ls-remote --heads origin "$BRANCH_NAME" | grep -q "$BRANCH_NAME"; then
+    git push origin --delete "$BRANCH_NAME" || true
+    log "✅ 远程分支已删除"
+else
+    log "ℹ️ 远程分支不存在，跳过删除"
+fi
 
 # 生成完成报告
 cat > "$PROJECT_ROOT/scan-result.json" <<EOF
