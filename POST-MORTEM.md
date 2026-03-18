@@ -58,81 +58,65 @@ PR #5 被创建，但**只创建了解决方案文档，没有实际移动文件
 4. ✅ 重新提交并合并 PR
 5. ✅ 关闭 Issue #4
 
-### 长期改进（待实施）
-1. ⏳ 创建验证脚本 `scripts/validate-changes.sh`
-2. ⏳ 在 `process-issue.sh` 中集成验证步骤
-3. ⏳ 添加编译/测试自动执行
-4. ⏳ 创建 Issue 模板要求明确验收标准
+### 长期改进（已完成）
+1. ✅ 创建智能验证脚本 `scripts/validate-changes.sh`
+2. ✅ 在 `process-issue.sh` 中集成验证步骤
+3. ✅ 添加编译/测试自动执行
+4. ✅ 创建 Issue 模板要求明确验收标准
+5. ✅ 实现基于 issue 内容的动态验证规则生成
 
 ---
 
 ## 📝 改进计划
 
-### 验证机制设计
+### 智能验证机制设计（已实现）
+
+验证脚本 `scripts/validate-changes.sh` 现在支持：
+
+1. **动态解析 Issue 内容** - 从 title 和 body 中提取关键词
+2. **自动生成验证规则** - 根据 issue 类型选择验证策略
+3. **灵活的检查类型**：
+
+| 检查类型 | 触发关键词 | 验证内容 |
+|----------|------------|----------|
+| 文件移动 | 移动/move/migrate | 源文件删除 + 目标文件存在 |
+| 文件创建 | 创建/create/add | 新文件存在且非空 |
+| 文件删除 | 删除/delete/remove | 文件已不存在 |
+| 代码修改 | 修改/modify/update/fix | 文件变更统计 |
+| 编译验证 | 编译/build/compile | make clean && make |
+| 运行验证 | 测试/test/run/execute | 执行可执行文件 |
+| 配置验证 | 配置/config/yaml/json | 语法检查 |
+
+### 验证流程（已实现）
 
 ```bash
-# 验证脚本伪代码
-function validate_file_move() {
-    local src=$1
-    local dst=$2
-    
-    # 检查目标文件是否存在
-    if [ ! -f "$dst" ]; then
-        echo "❌ 验证失败：目标文件 $dst 不存在"
-        return 1
-    fi
-    
-    # 检查源文件是否已删除（如果是移动操作）
-    if [ -f "$src" ]; then
-        echo "❌ 验证失败：源文件 $src 仍然存在"
-        return 1
-    fi
-    
-    # 验证文件内容完整性
-    echo "✅ 验证通过：文件已成功移动"
-    return 0
-}
-
-function validate_build() {
-    # 执行编译
-    if ! make clean && make; then
-        echo "❌ 编译失败"
-        return 1
-    fi
-    
-    # 执行测试（如果有）
-    if [ -f "./hello" ]; then
-        ./hello > /dev/null 2>&1 || {
-            echo "❌ 程序运行失败"
-            return 1
-        }
-    fi
-    
-    echo "✅ 编译和运行测试通过"
-    return 0
-}
+# 更新后的完整流程
+1. 创建分支
+2. AI 开发
+3. 🔍 智能验证（新增）
+   ├─ 获取 Issue 详情（title + body）
+   ├─ 解析关键词，生成验证规则
+   ├─ 执行针对性验证
+   └─ 失败则回滚，成功则继续
+4. 提交代码（包含验证结果）
+5. 推送
+6. 创建 PR
+7. 合并
+8. 关闭 Issue
 ```
 
-### 流程更新
-
-在 `process-issue.sh` 中添加验证步骤：
+### 示例：Issue #4 的验证过程
 
 ```bash
-# 现有流程
-1. 创建分支
-2. AI 开发
-3. 提交代码
-4. 推送
-5. 创建 PR
+# Issue #4: "hello.cpp 应该放在 src 目录"
+# 关键词检测：移动/move → CHECK_FILE_MOVE=true
 
-# 更新后的流程
-1. 创建分支
-2. AI 开发
-3. 【新增】执行验证脚本
-4. 【新增】运行编译/测试
-5. 提交代码（包含验证结果）
-6. 推送
-7. 创建 PR
+# 执行的验证：
+1. 检查根目录 hello.cpp 是否已删除 ✅
+2. 检查 src/hello.cpp 是否存在 ✅
+3. 检查 Makefile 是否更新 ✅
+4. 执行 make 编译 ✅
+5. 执行 ./hello 运行 ✅
 ```
 
 ---

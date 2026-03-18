@@ -194,6 +194,8 @@ esac
 log "🔍 验证变更..."
 VALIDATION_SCRIPT="$SCRIPT_DIR/validate-changes.sh"
 if [ -x "$VALIDATION_SCRIPT" ]; then
+    # 传递 REPO 环境变量给验证脚本
+    export REPO
     if ! "$VALIDATION_SCRIPT" "$ISSUE_NUMBER"; then
         log "❌ 验证失败，中止提交"
         # 恢复更改
