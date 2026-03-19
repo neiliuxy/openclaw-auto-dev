@@ -6,6 +6,12 @@
 
 ## 🎯 核心原则
 
+### 0. 灵活开发工具 (Flexible Tools)
+- **优先使用 OpenCode** 进行代码开发
+- **如果 OpenCode 不可用**，直接手动编写代码
+- 不要等待工具可用而停滞开发
+- 验证代码正确性后提交
+
 ### 1. 信任但要验证 (Trust but Verify)
 - **永远不要假设**你的操作正确执行了
 - **始终运行验证**: `./scripts/validate-changes.sh <issue_number>`
