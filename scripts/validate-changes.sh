@@ -56,8 +56,8 @@ parse_validation_requirements() {
         echo "CHECK_FILE_MOVE=true" >> "$config_file"
         
         # 尝试提取源文件和目标目录
-        local src_file=$(echo "$issue_body" | grep -oP '(?<=从|from )[`\']?[\w./]+[`\']?' | head -1 | tr -d "'\`")
-        local dst_dir=$(echo "$issue_body" | grep -oP '(?<=到|to )[`\']?[\w./]+[`\']?' | head -1 | tr -d "'\`")
+        local src_file=$(echo "$issue_body" | grep -oP '(?<=from )[\w./]+' | head -1 | tr -d "'")
+        local dst_dir=$(echo "$issue_body" | grep -oP '(?<=to )[\w./]+' | head -1 | tr -d "'")
         
         if [ -n "$src_file" ]; then
             echo "SRC_FILE=$src_file" >> "$config_file"
