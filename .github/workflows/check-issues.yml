@@ -1,0 +1,42 @@
+name: Check New Issues
+
+on:
+  schedule:
+    # 每 30 分钟运行一次
+    - cron: '*/30 * * * *'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  check-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for new issues with openclaw-new label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔍 检查新的 openclaw-new 标签 issue..."
+          
+          # 获取所有 open 状态且带有 openclaw-new 标签的 issue
+          issues=$(gh issue list --label "openclaw-new" --state open --json number,title,createdAt,author --limit 10)
+          
+          if [ -z "$issues" ] || [ "$issues" = "[]" ]; then
+            echo "✅ 没有新的 openclaw-new 标签 issue"
+            exit 0
+          fi
+          
+          echo "📋 发现以下 issue 需要处理:"
+          echo "$issues" | jq -r '.[] | "- #\(.number): \(.title) (by \(.author.login))"'
+          
+          # 输出到 GitHub Actions 日志
+          echo "::notice::发现 $(echo "$issues" | jq 'length') 个新 issue 需要处理"
+          
+          # 可以在这里添加自动处理逻辑
+          # 或者发送通知到外部系统
+
+      - name: Report status
+        run: |
+          echo "✅ Issue 检查完成"
+          echo "📊 运行时间：$(date)"
