@@ -20,6 +20,31 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
+# ============================================
+# 项目配置加载
+# ============================================
+
+load_project_config() {
+    local config_file="$PROJECT_ROOT/openclaw.json"
+    
+    if [ -f "$config_file" ]; then
+        log "📂 加载项目配置: $config_file"
+        PROJECT_NAME=$(python3 -c "import json; print(json.load(open('$config_file')).get('name', ''))" 2>/dev/null || echo "")
+        SOURCE_DIR=$(python3 -c "import json; print(json.load(open('$config_file')).get('source_dir', '.'))" 2>/dev/null || echo ".")
+        MAIN_FILE=$(python3 -c "import json; print(json.load(open('$config_file')).get('main_file', ''))" 2>/dev/null || echo "")
+        LANGUAGE=$(python3 -c "import json; print(json.load(open('$config_file')).get('language', ''))" 2>/dev/null || echo "")
+        BUILD_CMD=$(python3 -c "import json; print(json.load(open('$config_file')).get('build', ''))" 2>/dev/null || echo "")
+        
+        log "   项目: $PROJECT_NAME, 语言: $LANGUAGE, 源码目录: $SOURCE_DIR"
+    else
+        PROJECT_NAME=""
+        SOURCE_DIR="."
+        MAIN_FILE=""
+        LANGUAGE=""
+        BUILD_CMD=""
+    fi
+}
+
 # 错误处理函数
 error_exit() {
     log "❌ 错误：$1"
@@ -60,6 +85,9 @@ ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json body --jq '.bod
 
 log "📝 Issue 标题：$ISSUE_TITLE"
 log "📄 Issue 描述：${ISSUE_BODY:-空}"
+
+# 加载项目配置
+load_project_config
 
 # 步骤 2: 创建分支
 BRANCH_NAME="openclaw/issue-$ISSUE_NUMBER"
