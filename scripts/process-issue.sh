@@ -93,9 +93,16 @@ if echo "$ISSUE_TITLE $ISSUE_BODY" | grep -qiE "json.*配置|配置.*json|config
     if echo "$ISSUE_TITLE $ISSUE_BODY" | grep -qiE "c\+\+|hello|cpp|程序"; then
         log "📝 任务类型：C++ 程序添加 JSON 配置支持"
         
-        if [ -f "hello.cpp" ]; then
+        # 找到 hello.cpp 的位置
+        if [ -f "src/hello.cpp" ]; then
+            HELLO_FILE="src/hello.cpp"
+        elif [ -f "hello.cpp" ]; then
+            HELLO_FILE="hello.cpp"
+        fi
+        
+        if [ -n "$HELLO_FILE" ]; then
             # 修改现有 hello.cpp 添加配置支持
-            cat > hello.cpp <<'EOF'
+            cat > "$HELLO_FILE" <<'EOF'
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -175,7 +182,7 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 EOF
-            git add hello.cpp
+            git add "$HELLO_FILE"
             
             # 创建示例配置文件
             cat > config.json <<'EOF'
