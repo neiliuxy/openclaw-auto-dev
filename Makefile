@@ -5,6 +5,15 @@ hello: src/hello.cpp
 	$(CXX) $(CXXFLAGS) -o hello src/hello.cpp
 
 clean:
-	rm -f hello
+	rm -f hello hello_test
 
-.PHONY: clean
+test: hello_test
+	./hello_test
+
+hello_test: tests/hello_test.cpp src/hello.cpp
+	$(CXX) $(CXXFLAGS) -I/usr/include -lgtest -lgtest_main -pthread -o hello_test tests/hello_test.cpp src/hello.cpp
+
+clean_test:
+	rm -f hello_test
+
+.PHONY: clean test clean_test
