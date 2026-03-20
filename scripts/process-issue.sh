@@ -209,6 +209,7 @@ fi
 
 # 步骤 6: 提交更改
 log "📦 提交更改..."
+git add -A
 git commit -m "$COMMIT_MSG"
 
 # 步骤 7: 推送到远程分支
@@ -234,10 +235,10 @@ Closes #$ISSUE_NUMBER" \
     --base master \
     --head "$BRANCH_NAME")
 
-# 提取 PR 编号
-PR_NUMBER=$(echo "$PR_TITLE" | grep -oP '#\K[0-9]+' || echo "")
+# 提取 PR 编号（gh pr create 返回 URL，需要从 URL 或列表中提取）
+PR_NUMBER=$(gh pr list --head "$BRANCH_NAME" --repo "$REPO" --json number --jq '.[0].number' 2>/dev/null || echo "")
 
-if [ -n "$PR_NUMBER" ]; then
+if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
     log "✅ PR #$PR_NUMBER 已创建"
 else
     log "⚠️ 无法提取 PR 编号"
