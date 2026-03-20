@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-20T08:39:15+08:00",
-  "status": "new_issue",
-  "message": "发现新 Issue",
-  "issue_number": 12,
-  "issue_title": "Feature: Add automatic test integration",
+  "timestamp": "2026-03-20T11:30:02+08:00",
+  "status": "idle",
+  "message": "无新 Issue 需要处理",
+  "issue_number": null,
+  "issue_title": null,
   "scan_log": "/home/admin/.openclaw/workspace/openclaw-auto-dev/logs/scan-2026-03-20.log"
 }
