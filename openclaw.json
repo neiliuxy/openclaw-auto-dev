@@ -1,0 +1,12 @@
+{
+  "name": "openclaw-auto-dev",
+  "source_dir": "src",
+  "language": "cpp",
+  "main_file": "src/hello.cpp",
+  "build": "make",
+  "test": "make test",
+  "config_patterns": {
+    "json": "config*.json",
+    "yaml": "config*.yaml"
+  }
+}

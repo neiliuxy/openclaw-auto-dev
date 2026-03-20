@@ -20,6 +20,132 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
+# ============================================
+# 项目配置加载与源码发现
+# ============================================
+
+# 加载项目配置
+load_project_config() {
+    local config_file="$PROJECT_ROOT/openclaw.json"
+    
+    if [ -f "$config_file" ]; then
+        log "📂 加载项目配置: $config_file"
+        # 使用 python 解析 JSON（更可靠）
+        PROJECT_NAME=$(python3 -c "import json; print(json.load(open('$config_file')).get('name', ''))" 2>/dev/null || echo "")
+        SOURCE_DIR=$(python3 -c "import json; print(json.load(open('$config_file')).get('source_dir', ''))" 2>/dev/null || echo ".")
+        MAIN_FILE=$(python3 -c "import json; print(json.load(open('$config_file')).get('main_file', ''))" 2>/dev/null || echo "")
+        LANGUAGE=$(python3 -c "import json; print(json.load(open('$config_file')).get('language', ''))" 2>/dev/null || echo "")
+        BUILD_CMD=$(python3 -c "import json; print(json.load(open('$config_file')).get('build', ''))" 2>/dev/null || echo "")
+        
+        log "   项目: $PROJECT_NAME, 语言: $LANGUAGE, 源码目录: $SOURCE_DIR"
+    else
+        log "⚠️ 未找到项目配置文件，使用默认配置"
+        PROJECT_NAME=""
+        SOURCE_DIR="."
+        MAIN_FILE=""
+        LANGUAGE=""
+        BUILD_CMD=""
+    fi
+}
+
+# 动态发现源码文件
+discover_source_files() {
+    local lang="$1"
+    
+    log "🔍 动态发现 $lang 源码文件..."
+    
+    # 扩展名映射
+    local ext_map=(
+        "cpp:C++:*.cpp"
+        "c:C:*.c"
+        "python:Python:*.py"
+        "javascript:JavaScript:*.js"
+        "typescript:TypeScript:*.ts"
+        "go:Go:*.go"
+        "rust:Rust:*.rs"
+        "java:Java:*.java"
+    )
+    
+    local extensions=""
+    for item in "${ext_map[@]}"; do
+        if [[ "$item" == "$lang:"* ]]; then
+            extensions="${item##*:}"
+            break
+        fi
+    done
+    
+    if [ -z "$extensions" ]; then
+        extensions="*.$lang"
+    fi
+    
+    # 在源码目录中查找
+    local found_files=()
+    for ext in $(echo "$extensions" | tr ',' ' '); do
+        while IFS= read -r file; do
+            found_files+=("$file")
+        done < <(find "$PROJECT_ROOT" -maxdepth 4 -name "$ext" -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/build/*" 2>/dev/null | head -10)
+    done
+    
+    # 如果没找到，尝试更广泛的搜索
+    if [ ${#found_files[@]} -eq 0 ]; then
+        log "   尝试广泛搜索..."
+        for ext in cpp c py js ts go rs java; do
+            while IFS= read -r file; do
+                found_files+=("$file")
+            done < <(find "$PROJECT_ROOT" -maxdepth 3 -name "*.$ext" -not -path "*/node_modules/*" -not -path "*/.git/*" 2>/dev/null | head -5)
+        done
+    fi
+    
+    # 去重并返回
+    if [ ${#found_files[@]} -gt 0 ]; then
+        printf '%s\n' "${found_files[@]}" | sort -u
+    fi
+}
+
+# 根据语言获取默认构建命令
+get_build_command() {
+    local lang="$1"
+    local build_cmd=""
+    
+    # 优先使用配置中的构建命令
+    if [ -n "$BUILD_CMD" ]; then
+        echo "$BUILD_CMD"
+        return
+    fi
+    
+    # 根据语言推断构建命令
+    case "$lang" in
+        cpp|c)
+            if [ -f "$PROJECT_ROOT/Makefile" ]; then
+                echo "make"
+            elif [ -f "$PROJECT_ROOT/CMakeLists.txt" ]; then
+                echo "cmake . && make"
+            fi
+            ;;
+        python)
+            echo "# No build needed"
+            ;;
+        javascript|typescript)
+            if [ -f "$PROJECT_ROOT/package.json" ]; then
+                echo "npm run build"
+            fi
+            ;;
+        go)
+            echo "go build"
+            ;;
+        rust)
+            echo "cargo build"
+            ;;
+        java)
+            if [ -f "$PROJECT_ROOT/pom.xml" ]; then
+                echo "mvn build"
+            elif [ -f "$PROJECT_ROOT/build.gradle" ]; then
+                echo "gradle build"
+            fi
+            ;;
+    esac
+}
+
 # 错误处理函数
 error_exit() {
     log "❌ 错误：$1"
@@ -61,6 +187,9 @@ ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json body --jq '.bod
 log "📝 Issue 标题：$ISSUE_TITLE"
 log "📄 Issue 描述：${ISSUE_BODY:-空}"
 
+# 加载项目配置
+load_project_config
+
 # 步骤 2: 创建分支
 BRANCH_NAME="openclaw/issue-$ISSUE_NUMBER"
 log "🌿 创建分支：$BRANCH_NAME"
@@ -93,14 +222,24 @@ if echo "$ISSUE_TITLE $ISSUE_BODY" | grep -qiE "json.*配置|配置.*json|config
     if echo "$ISSUE_TITLE $ISSUE_BODY" | grep -qiE "c\+\+|hello|cpp|程序"; then
         log "📝 任务类型：C++ 程序添加 JSON 配置支持"
         
-        # 找到 hello.cpp 的位置
-        if [ -f "src/hello.cpp" ]; then
+        # 动态发现源码文件
+        # 优先使用配置中的 main_file
+        if [ -n "$MAIN_FILE" ] && [ -f "$PROJECT_ROOT/$MAIN_FILE" ]; then
+            HELLO_FILE="$MAIN_FILE"
+        elif [ -f "$PROJECT_ROOT/src/hello.cpp" ]; then
             HELLO_FILE="src/hello.cpp"
-        elif [ -f "hello.cpp" ]; then
+        elif [ -f "$PROJECT_ROOT/hello.cpp" ]; then
             HELLO_FILE="hello.cpp"
+        else
+            # 尝试动态发现
+            discovered=$(discover_source_files "cpp" | head -1)
+            if [ -n "$discovered" ]; then
+                HELLO_FILE="${discovered#$PROJECT_ROOT/}"
+            fi
         fi
         
-        if [ -n "$HELLO_FILE" ]; then
+        if [ -n "$HELLO_FILE" ] && [ -f "$PROJECT_ROOT/$HELLO_FILE" ]; then
+            log "   📄 发现源码文件: $HELLO_FILE"
             # 修改现有 hello.cpp 添加配置支持
             cat > "$HELLO_FILE" <<'EOF'
 #include <iostream>
@@ -194,7 +333,8 @@ EOF
             git add config.json
             COMMIT_MSG="feat: add JSON config file support (closes #$ISSUE_NUMBER)"
         else
-            log "⚠️ 未找到 hello.cpp，创建配置文档"
+            log "⚠️ 未找到 C++ 源码文件，创建配置文档"
+            log "💡 提示：请在 openclaw.json 中配置 main_file 字段"
             cat > CONFIG.md <<EOF
 # JSON 配置文件支持
 
