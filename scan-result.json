@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-21T22:56:11+08:00",
+  "timestamp": "2026-03-21T23:32:16+08:00",
   "status": "new_issue",
   "message": "发现新 Issue",
-  "issue_number": 54,
-  "issue_title": "test: 最终测试",
+  "issue_number": 57,
+  "issue_title": "bash-pipeline-test-final",
   "scan_log": "/home/admin/.openclaw/workspace/openclaw-auto-dev/logs/scan-2026-03-21.log"
 }
