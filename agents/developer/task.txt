@@ -1,8 +1,8 @@
-你是 Agent-Developer。请为 Issue #57 实现代码。
+你是 Agent-Developer。请为 Issue #56 实现代码。
 
 **Issue 信息：**
-- 标题：bash-pipeline-test-final
-- 描述：实现 `src/bash_test.cpp`
+- 标题：skill-pipeline-test
+- 描述：测试 skill pipeline 是否正常工作
 
 **任务：**
 请分析 Issue 需求，实现代码文件。把每个文件的完整内容输出为 Markdown code block，格式为：```file: src/文件名```
