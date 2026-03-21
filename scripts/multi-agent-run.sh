@@ -164,19 +164,17 @@ fi
 
 log "📄 识别文件: $FILENAME"
 
-# 生成代码（基于 Issue 需求）
-python3 << PYEOF
-import re
+# 生成代码（基于 Issue 需求）- 通过环境变量传参，避免 heredoc 中的特殊字符被 bash 解释
+export ISSUE_BODY ISSUE_TITLE
+FILES_INFO=$(python3 << 'PYEOF'
+import re, os
+issue_body = os.environ.get("ISSUE_BODY", "")
+issue_title = os.environ.get("ISSUE_TITLE", "")
 
-issue_body = """${ISSUE_BODY:-}"""
-issue_title = """$ISSUE_TITLE"""
-
-# 提取文件名
 files = re.findall(r'\`(src/[a-zA-Z0-9_]+\.(cpp|h))\`', issue_body)
 files = list(dict.fromkeys(files))  # 去重保留顺序
 
 if not files:
-    # 从"新建"描述中提取
     for line in issue_body.split('\n'):
         if '新建' in line or 'new' in line.lower():
             m = re.search(r'[\'""]?([a-zA-Z0-9_]+\.(cpp|h))[\'"\"]?\s*(?:and|&|\+)', line, re.I)
@@ -185,14 +183,6 @@ if not files:
                 if fname not in files:
                     files.append((fname, fname.split('.')[-1]))
 
-print("FILES:", "|".join([f[0] for f in files]))
-PYEOF
-
-FILES_INFO=$(python3 << 'PYEOF'
-import re
-issue_body = """${ISSUE_BODY:-}"""
-files = re.findall(r'\`(src/[a-zA-Z0-9_]+\.(cpp|h))\`', issue_body)
-files = list(dict.fromkeys(files))
 print("|".join([f[0] for f in files]) if files else "")
 PYEOF
 )
@@ -206,14 +196,16 @@ for FILEPATH in $FILES_INFO; do
     FILENAME=$(basename "$FILEPATH" .$(echo "$FILEPATH" | rev | cut -d. -f1 | rev))
     mkdir -p "$(dirname "$PROJECT_ROOT/$FILEPATH")"
     
-    python3 << PYEOF
-import re
+    # 通过环境变量传参，避免 heredoc 中的特殊字符被 bash 解释
+    export ISSUE_BODY ISSUE_TITLE FILEPATH FILENAME
+    python3 << 'PYEOF'
+import re, os
 
-issue_body = """${ISSUE_BODY:-}"""
-issue_title = """$ISSUE_TITLE"""
-filepath = """$FILEPATH"""
-filename = """$FILENAME"""
-ext = filepath.split('.')[-1]
+issue_body = os.environ.get("ISSUE_BODY", "")
+issue_title = os.environ.get("ISSUE_TITLE", "")
+filepath = os.environ.get("FILEPATH", "")
+filename = os.environ.get("FILENAME", "")
+ext = filepath.split('.')[-1] if filepath else ""
 
 # 提取功能关键词
 funcs = []
@@ -227,7 +219,7 @@ for line in issue_body.split('\n'):
 ini_example = ""
 in_code = False
 for line in issue_body.split('\n'):
-    if '\`\`\`ini' in line or '\`\`\`' in line:
+    if '```ini' in line or '```' in line:
         in_code = not in_code
     elif in_code:
         ini_example += line + "\n"
@@ -238,13 +230,15 @@ PYEOF
 
 done
 
-# 通用备用：生成与 Issue 匹配的代码
-python3 << 'PYEOF'
-import re
+# 通用备用：生成与 Issue 匹配的代码（仅当 FILES_INFO 为空时）
+if [ -z "$FILES_INFO" ] || [ "$FILES_INFO" = "src/task.cpp" ]; then
+    export ISSUE_BODY ISSUE_TITLE
+    python3 << 'PYEOF'
+import re, os
 
-issue_body = """${ISSUE_BODY:-}"""
-issue_title = """$ISSUE_TITLE"""
-filepath = """$FILEPATH"""
+issue_body = os.environ.get("ISSUE_BODY", "")
+issue_title = os.environ.get("ISSUE_TITLE", "")
+filepath = os.environ.get("FILEPATH", "src/task.cpp")
 
 # 检查 INI parser
 if 'ini' in issue_title.lower() or 'ini' in issue_body.lower():
@@ -449,6 +443,8 @@ int main() {
         f.write(code)
     print("GENERATED:" + filepath)
 PYEOF
+
+fi  # 关闭 if [ -z "$FILES_INFO" ] || [ "$FILES_INFO" = "src/task.cpp" ]
 
 # 复制生成的代码文件
 if ls /tmp/code_*.cpp /tmp/code_*.h 2>/dev/null; then
