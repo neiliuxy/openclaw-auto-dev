@@ -47,8 +47,13 @@ node_modules/
 # Temp files
 scan-result.json
 cron-report.md
-TEST_REPORT.md
+
+# Pipeline artifacts (per-issue, stored in openclaw/)
 SPEC.md
+TEST_REPORT.md
+
+# OpenClaw per-issue data
+# (openclaw/<num>_<slug>/ is tracked, do NOT ignore it)
 
 # Python cache
 __pycache__/
