@@ -61,9 +61,18 @@ generate_report() {
 
 log "🔍 开始扫描 GitHub Issue..."
 
-# 检查是否有正在处理的 Issue
+# 检查是否有正在处理的 Issue（multi-agent 所有阶段）
 log "📋 检查是否有 Issue 正在处理中..."
-processing=$(gh issue list --repo neiliuxy/openclaw-auto-dev --state open --label "openclaw-processing" --json number,title --limit 1 2>/dev/null || echo "[]")
+ALL_STAGES="openclaw-processing openclaw-architecting openclaw-planning openclaw-developing openclaw-testing openclaw-reviewing"
+processing="[]"
+for label in $ALL_STAGES; do
+    result=$(gh issue list --repo neiliuxy/openclaw-auto-dev --state open --label "$label" --json number,title --limit 1 2>/dev/null || echo "[]")
+    count=$(echo "$result" | jq 'length')
+    if [ "$count" -gt 0 ]; then
+        processing="$result"
+        break
+    fi
+done
 
 processing_count=$(echo "$processing" | jq 'length')
 
