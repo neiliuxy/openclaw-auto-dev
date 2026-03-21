@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-21T18:01:37+08:00",
-  "status": "new_issue",
-  "message": "发现新 Issue",
-  "issue_number": 27,
-  "issue_title": "feat: 添加 C++ 文件搜索工具 file_finder",
+  "timestamp": "2026-03-21T18:30:02+08:00",
+  "status": "idle",
+  "message": "无新 Issue 需要处理",
+  "issue_number": null,
+  "issue_title": null,
   "scan_log": "/home/admin/.openclaw/workspace/openclaw-auto-dev/logs/scan-2026-03-21.log"
 }
