@@ -1,16 +1,8 @@
-你是 Agent-Developer。请为 Issue #77 实现代码。
+你是 Agent-Developer。请为 Issue #81 实现代码。
 
 **Issue 信息：**
-- 标题：test: 验证清理后的系统状态
-- 描述：## 测试目标
-验证  和  删除后，Issue 处理流程仍然正常。
-
-## 测试步骤
-1. 创建测试 Issue
-2. 系统应自动扫描并处理
-
-## 预期结果
-系统正常处理，状态标签正确流转。
+- 标题：test: 4-session pipeline verification
+- 描述：验证 sessions_spawn 能否在 subagent 内正常工作
 
 **任务：**
 请分析 Issue 需求，实现代码文件。把每个文件的完整内容输出为 Markdown code block，格式为：```file: src/文件名```
