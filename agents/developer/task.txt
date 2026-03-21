@@ -1,29 +1,16 @@
-你是 Agent-Developer。请为 Issue #64 实现代码。
+你是 Agent-Developer。请为 Issue #77 实现代码。
 
 **Issue 信息：**
-- 标题：skill-test: 二叉树遍历
-- 描述：## 需求
+- 标题：test: 验证清理后的系统状态
+- 描述：## 测试目标
+验证  和  删除后，Issue 处理流程仍然正常。
 
-实现 `src/binary_tree.cpp`，包含二叉树节点遍历功能。
+## 测试步骤
+1. 创建测试 Issue
+2. 系统应自动扫描并处理
 
-## 函数签名
-
-```cpp
-struct TreeNode {
-    int val;
-    TreeNode* left;
-    TreeNode* right;
-    TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
-};
-
-// 前序遍历
-void inorder(TreeNode* root);
-```
-
-## 验收标准
-
-- [ ] 代码可编译（g++ -std=c++17）
-- [ ] 递归实现前序遍历
+## 预期结果
+系统正常处理，状态标签正确流转。
 
 **任务：**
 请分析 Issue 需求，实现代码文件。把每个文件的完整内容输出为 Markdown code block，格式为：```file: src/文件名```
