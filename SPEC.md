@@ -1,14 +1,14 @@
-# Issue #54 需求规格说明书
+# Issue #57 需求规格说明书
 
 ## 1. 概述
-- **Issue**: #54
-- **标题**: test: 最终测试
+- **Issue**: #57
+- **标题**: bash-pipeline-test-final
 - **处理时间**: 2026-03-21
 
 ## 2. 需求分析
 
 ### 背景
-实现 `src/ok_test.cpp`
+实现 `src/bash_test.cpp`
 
 ## 3. 功能点拆解
 
