@@ -44,11 +44,10 @@ node_modules/
 # OpenClaw
 .openclaw/
 
-# Temp files
+# Temp files (root-level pipeline artifacts go to openclaw/ instead)
 scan-result.json
 cron-report.md
-TEST_REPORT.md
-SPEC.md
+*.tmp
 
 # Python cache
 __pycache__/
