@@ -1,14 +1,14 @@
-# Issue #57 需求规格说明书
+# Issue #56 需求规格说明书
 
 ## 1. 概述
-- **Issue**: #57
-- **标题**: bash-pipeline-test-final
+- **Issue**: #56
+- **标题**: skill-pipeline-test
 - **处理时间**: 2026-03-21
 
 ## 2. 需求分析
 
 ### 背景
-实现 `src/bash_test.cpp`
+测试 skill pipeline 是否正常工作
 
 ## 3. 功能点拆解
 
