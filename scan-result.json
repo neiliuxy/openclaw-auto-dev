@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-22T07:11:24+08:00",
+  "timestamp": "2026-03-22T07:58:16+08:00",
   "status": "new_issue",
   "message": "发现新 Issue",
-  "issue_number": 77,
-  "issue_title": "test: 验证清理后的系统状态",
+  "issue_number": 81,
+  "issue_title": "test: 4-session pipeline verification",
   "scan_log": "/home/admin/.openclaw/workspace/openclaw-auto-dev/logs/scan-2026-03-22.log"
 }
