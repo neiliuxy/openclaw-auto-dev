@@ -1,8 +1,19 @@
-你是 Agent-Developer。请为 Issue #40 实现代码。
+你是 Agent-Developer。请为 Issue #42 实现代码。
 
 **Issue 信息：**
-- 标题：test: 验证 pipeline 清理后流程正常
-- 描述：## 测试目的\n\n验证文件清理后，OpenClaw multi-agent pipeline 仍然正常工作。\n\n## 任务\n\n在 `src/test_simple.cpp` 中实现一个简单的工具函数：\n\n```cpp\n// 返回两数之和\nint add(int a, int b);\n```\n\n## 验收标准\n\n- [ ] `add(1, 2)` 返回 `3`\n- [ ] `add(-1, 1)` 返回 `0`\n- [ ] 代码可编译运行
+- 标题：test: 验证代码生成修复
+- 描述：## 测试目的
+
+验证代码生成修复后，能正确生成新文件。
+
+## 任务
+
+实现 `src/adder.cpp`，包含一个 `add(int a, int b)` 函数，返回两数之和。
+
+## 验收标准
+
+- [ ] 生成 `src/adder.cpp` 文件
+- [ ] 代码可编译
 
 **任务：**
 请分析 Issue 需求，实现代码文件。把每个文件的完整内容输出为 Markdown code block，格式为：```file: src/文件名```
