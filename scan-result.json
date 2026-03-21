@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-21T22:38:33+08:00",
+  "timestamp": "2026-03-21T22:40:41+08:00",
   "status": "new_issue",
   "message": "发现新 Issue",
-  "issue_number": 44,
-  "issue_title": "test: 验证文件命名修复",
+  "issue_number": 46,
+  "issue_title": "test: 验证复制逻辑修复",
   "scan_log": "/home/admin/.openclaw/workspace/openclaw-auto-dev/logs/scan-2026-03-21.log"
 }
