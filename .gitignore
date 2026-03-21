@@ -1,10 +1,22 @@
 # Build outputs
-hello
+build/
 *.o
+*.obj
 *.exe
 *.dll
 *.so
 *.dylib
+*.a
+*.lib
+
+# Test binaries
+test_*
+*_test
+matrix_test
+string_reverse
+skill_fixed
+ok_test
+hello
 
 # IDE
 .vscode/
@@ -14,7 +26,10 @@ hello
 *~
 
 # Logs
+logs/
 *.log
+cron-*.log
+multi-agent-*.log
 
 # OS
 .DS_Store
@@ -28,3 +43,17 @@ node_modules/
 
 # OpenClaw
 .openclaw/
+
+# Temp files
+scan-result.json
+cron-report.md
+TEST_REPORT.md
+SPEC.md
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# GG2 components
+components/
