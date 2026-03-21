@@ -505,7 +505,8 @@ fi  # 关闭 if [ -z "$FILES_INFO" ] || [ "$FILES_INFO" = "src/task.cpp" ]
 
 # 复制生成的代码文件
 if ls /tmp/src_*.cpp /tmp/code_*.cpp /tmp/code_*.h 2>/dev/null; then
-    cp /tmp/src_*.cpp /tmp/code_*.cpp /tmp/code_*.h "$PROJECT_ROOT/" 2>/dev/null || true
+    cp /tmp/src_*.cpp /tmp/code_*.cpp /tmp/code_*.h "$PROJECT_ROOT/src/" 2>&1 || true
+    rm -f /tmp/src_*.cpp /tmp/code_*.cpp /tmp/code_*.h 2>/dev/null || true
 fi
 
 # 编译验证
