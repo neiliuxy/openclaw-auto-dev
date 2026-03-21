@@ -18,72 +18,82 @@ jobs:
 
       - name: Verify GitHub CLI
         run: |
-          # GitHub CLI 在 Ubuntu runner 上预装，验证版本
           gh --version
           jq --version
 
-      - name: Check for processing issues
+      # --- Multi-Agent 四角色检查 ---
+      # 按顺序检查各阶段是否有正在处理的 Issue
+      - name: Check Architect stage
+        id: check_architect
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          # 检查是否有正在处理的 Issue
-          processing=$(gh issue list --state open --label "openclaw-processing" --limit 1 2>&1) || true
-          
-          if [ -n "$processing" ]; then
-            echo "⚠️ 已有 Issue 在处理中，跳过本次检查"
-            # 创建标记文件
-            echo "processing" > /tmp/scan_status.txt
+          architecting=$(gh issue list --state open --label "openclaw-architecting" --limit 1 2>&1) || true
+          if [ -n "$architecting" ] && echo "$architecting" | grep -q "number"; then
+            echo "⚠️ Architect 阶段有 Issue 在处理中，跳过"
+            echo "status=architecting" > /tmp/scan_status.txt
+            echo "has_work=true" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
-          echo "✅ 没有正在处理的 Issue"
-          echo "idle" > /tmp/scan_status.txt
+
+      - name: Check for any processing stages
+        id: check_processing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # 检查所有处理中阶段（multi-agent 流程）
+          for label in openclaw-architecting openclaw-planning openclaw-developing openclaw-testing openclaw-reviewing; do
+            processing=$(gh issue list --state open --label "$label" --limit 1 2>&1) || true
+            if [ -n "$processing" ] && echo "$processing" | grep -q "number"; then
+              echo "⚠️ 有 Issue 正在处理 ($label)，跳过本次检查"
+              echo "status=processing" > /tmp/scan_status.txt
+              echo "has_work=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          done
+          echo "has_work=false" >> $GITHUB_OUTPUT
 
       - name: Check for new issues
         id: check_new
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          # 查询 openclaw-new 状态的 Issue
           new_issues=$(gh issue list --state open --label "openclaw-new" --json number,title,createdAt --limit 1 2>&1) || true
           
           if [ -z "$new_issues" ] || [ "$new_issues" = "[]" ]; then
             echo "ℹ️ 无新 Issue"
+            echo "status=idle" > /tmp/scan_status.txt
             echo "has_new=false" >> $GITHUB_OUTPUT
             exit 0
           fi
           
-          echo "📬 发现新 Issue: $new_issues"
-          echo "has_new=true" >> $GITHUB_OUTPUT
-          
-          # 获取第一个 Issue 的编号
+          # 解析 JSON（gh 输出的是有效 JSON）
           issue_number=$(echo "$new_issues" | jq -r '.[0].number')
           issue_title=$(echo "$new_issues" | jq -r '.[0].title')
           
           if [ -n "$issue_number" ] && [ "$issue_number" != "null" ]; then
-            echo "🎯 准备处理 Issue #$issue_number: $issue_title"
-            # 输出到文件供 OpenClaw 读取
-            echo "$issue_number" > /tmp/openclaw_issue_number.txt
-            echo "$issue_title" > /tmp/openclaw_issue_title.txt
-            # 设置输出供后续步骤使用
+            echo "📬 发现新 Issue: #$issue_number - $issue_title"
+            echo "has_new=true" >> $GITHUB_OUTPUT
             echo "issue_number=$issue_number" >> $GITHUB_OUTPUT
             echo "issue_title=$issue_title" >> $GITHUB_OUTPUT
+            echo "$issue_number" > /tmp/openclaw_issue_number.txt
+            echo "$issue_title" > /tmp/openclaw_issue_title.txt
           fi
 
-      - name: Trigger OpenClaw (optional)
+      - name: Trigger OpenClaw
         if: steps.check_new.outputs.has_new == 'true'
         env:
           OPENCLAW_WEBHOOK_URL: ${{ secrets.OPENCLAW_WEBHOOK_URL }}
           ISSUE_NUMBER: ${{ steps.check_new.outputs.issue_number }}
         run: |
-          # 如果配置了 Webhook，通知 OpenClaw
           if [ -n "$OPENCLAW_WEBHOOK_URL" ]; then
             curl -X POST "$OPENCLAW_WEBHOOK_URL" \
               -H "Content-Type: application/json" \
               -d "{\"issue_number\": $ISSUE_NUMBER, \"action\": \"process\"}" \
-            || echo "⚠️ Webhook 调用失败，但继续执行"
+            || echo "⚠️ Webhook 调用失败"
           else
             echo "ℹ️ 未配置 OPENCLAW_WEBHOOK_URL，跳过通知"
+            echo "请手动触发: gh workflow run issue-check.yml"
           fi
 
       - name: Upload scan result
