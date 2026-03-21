@@ -1,14 +1,10 @@
 # Issue #62 需求规格说明书
 
-## 1. 概述
-- **Issue**: #62
-- **标题**: feat: 添加 C++ 字符串反转工具
-- **处理时间**: 2026-03-22
+## 概述
 
-## 2. 需求分析
+本需求旨在为项目添加一个 C++ 字符串反转工具，实现通用的字符串反转功能。
 
-### 背景
-## 需求
+## 需求描述
 
 在 `src/string_reverse.cpp` 中实现一个字符串反转工具。
 
@@ -21,26 +17,48 @@
 std::string reverse_string(const std::string& s);
 ```
 
+## 技术规范
+
+- **语言**: C++17 (g++ -std=c++17)
+- **头文件**: 无独立头文件，函数直接在 .cpp 中实现
+- **命名空间**: 无
+
 ## 验收标准
 
-- [ ] `reverse_string("hello")` 返回 `"olleh"`
-- [ ] `reverse_string("")` 返回 `""`（空字符串）
-- [ ] `reverse_string("a")` 返回 `"a"`（单字符）
-- [ ] 代码可编译运行（g++ -std=c++17）
+| 用例 | 输入 | 预期输出 |
+|------|------|----------|
+| 普通字符串 | `"hello"` | `"olleh"` |
+| 空字符串 | `""` | `""` |
+| 单字符 | `"a"` | `"a"` |
+| 回文 | `"level"` | `"level"` |
+| 中文字符串 | `"你好"` | `"好你"` |
 
-## 3. 功能点拆解
+## 实现方案
 
-根据 Issue 描述提取功能点。
+使用 std::string 的反转方法：
 
-## 4. 技术方案
+```cpp
+std::string reverse_string(const std::string& s) {
+    std::string result = s;
+    std::reverse(result.begin(), result.end());
+    return result;
+}
+```
 
-### 4.1 文件结构
-根据 Issue 中指定的文件名确定。
+需要包含头文件：`<algorithm>` 和 `<string>`
 
-### 4.2 核心模块
-[由 Developer 根据 SPEC 补充]
+## 测试验证
 
-## 5. 验收标准
-- [ ] 代码可编译运行
-- [ ] 实现 Issue 要求的所有功能
-- [ ] 编译通过无警告
+编译命令：`g++ -std=c++17 src/string_reverse.cpp -o /tmp/string_reverse`
+
+测试用例覆盖：
+1. 普通英文字符串
+2. 空字符串边界
+3. 单字符边界
+4. 回文字符串
+5. 多字节字符（UTF-8）
+
+## 依赖
+
+- `<algorithm>` - std::reverse
+- `<string>` - std::string
