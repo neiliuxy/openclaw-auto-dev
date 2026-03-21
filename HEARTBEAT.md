@@ -25,39 +25,23 @@ Tester ────→ TEST_REPORT.md
     │         (逐条验证，生成报告)
     ▼
 Reviewer ──→ PR / 打回迭代
-    │         (通过 → 创建 PR；失败 → 打回 Developer)
-    ▼
-openclaw-pr-created / openclaw-processing (继续迭代)
-    │
+    │         (通过 → 创建 PR + 合并；失败 → 打回 Developer)
     ▼
 PR 合并 ──→ openclaw-completed
 ```
 
-## 检查清单
-
-- [ ] 检查是否有 `openclaw-new` 状态的 Issue
-- [ ] 如果有，获取第一个 Issue 编号
-- [ ] 确认没有其他 Issue 正在处理中（`openclaw-architecting` / `openclaw-developing` 等）
-- [ ] 按顺序执行四 Agent 流程
-
 ## Agent 执行脚本
 
 ```bash
-# 1. Architect：分析需求，输出 SPEC.md
-./scripts/agent-architect.sh <issue_number>
-
-# 2. Developer：读取 SPEC.md，开发代码
-./scripts/agent-developer.sh <issue_number>
-
-# 3. Tester：验证实现，输出 TEST_REPORT.md
-./scripts/agent-tester.sh <issue_number>
-
-# 4. Reviewer：决策合并或打回
-./scripts/agent-reviewer.sh <issue_number>
-
-# 主流程（一键执行）
+# 推荐：直接运行多角色主流程
 ./scripts/multi-agent-run.sh <issue_number>
+
+# 或：通过心跳脚本（自动检测新 Issue）
+./scripts/heartbeat-check.sh    # OpenClaw HEARTBEAT
+./scripts/cron-heartbeat.sh     # crontab
 ```
+
+**注意**：四 Agent 均内嵌在 `multi-agent-run.sh` 中，不作为独立脚本存在。
 
 ## Issue 状态标签（扩展版）
 
@@ -76,8 +60,8 @@ PR 合并 ──→ openclaw-completed
 ## 迭代规则
 
 - 验证失败 → Reviewer 打回 Developer，最多 **3 次迭代**
-- 3 次迭代后仍不通过 → `openclaw-error` + 通知人工介入
-- 迭代分支命名：`feature/issue-{N}-iter-{M}`
+- 3 次迭代后仍不通过 → `openclaw-error` + 人工介入
+- 迭代分支命名：`openclaw/issue-{N}-iter-{M}`
 
 ## 产物文件
 
@@ -102,7 +86,7 @@ openclaw-auto-dev/
 
 ## 错误处理
 
-- opencode 超时 → 添加 `openclaw-error` 标签
-- SPEC.md 验收标准无法测试 → Architect 打回重写
+- LLM API 不可用 → 使用智能 fallback 生成代码
+- 编译失败 → 标记失败，Reviewer 打回
 - Git 冲突 → 重试或标记错误
-- API 限流 → 等待 1 小时后重试
+- API 限流 → 等待后重试

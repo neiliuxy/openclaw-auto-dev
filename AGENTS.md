@@ -1,155 +1,85 @@
 # AGENTS.md - AI 开发指南
 
-**OpenClaw Auto Dev 项目** - 自动化 GitHub Issue 处理系统
+**OpenClaw Auto Dev 项目** — 多 Agent 自动化 GitHub Issue 处理系统
 
 ---
 
-## 🎯 核心原则
+## 🎯 系统架构
 
-### 0. 直接手动开发
-- 不使用 OpenCode（存在稳定问题）
-- 直接手动编写代码
-- 验证代码正确性后提交
+本项目采用**四 Agent 协作流程**，由 `multi-agent-run.sh` 统一编排：
 
-### 1. 信任但要验证 (Trust but Verify)
-- **永远不要假设**你的操作正确执行了
-- **始终运行验证**: `./scripts/validate-changes.sh <issue_number>`
-- 验证失败 = 回滚更改，不要提交
+```
+Architect → Developer → Tester → Reviewer → PR 合并
+```
 
-### 2. 执行优于文档
-- 创建 SOLUTION.md 文档 **之前** 先执行实际变更
-- 文档是记录，不是替代品
-- 验收标准：代码能编译、测试能通过
+各 Agent 角色详情见 `MULTI_AGENT_DESIGN.md`。
+
+---
+
+## 🤖 核心原则
+
+### 1. Trust but Verify
+- **永远不要假设**操作正确执行了
+- 始终验证：运行测试、编译检查
+- 验证失败 = 回滚，不要提交
+
+### 2. 产物驱动开发
+- Architect 输出 SPEC.md（需求规格）
+- Developer 基于 SPEC.md 开发
+- Tester 基于 SPEC.md 验证
+- Reviewer 基于 TEST_REPORT.md 决策
 
 ### 3. 小步提交
-- 每个 issue 一个分支：`openclaw/issue-{num}`
-- 提交信息包含 issue 引用：`fix: move hello.cpp to src/ (closes #4)`
-- 验证通过后才提交
+- 每个 Issue 一个分支：`openclaw/issue-{num}`
+- 提交信息包含 Issue 引用：`feat: add feature (closes #N)`
 
 ---
 
-## 📋 工作流程
+## 🛠️ 关键脚本
 
-### 处理 Issue
+| 脚本 | 用途 |
+|------|------|
+| `scripts/multi-agent-run.sh` | 四 Agent 主流程（核心） |
+| `scripts/heartbeat-check.sh` | OpenClaw HEARTBEAT 调用 |
+| `scripts/cron-heartbeat.sh` | crontab 调用 |
+| `scripts/scan-issues.sh` | GitHub Issue 扫描 |
+
+---
+
+## 📝 Issue 处理流程
+
+1. 用户创建 Issue，打上 `openclaw-new` 标签
+2. 心跳触发 `multi-agent-run.sh`
+3. 四 Agent 依次执行：Architect → Developer → Tester → Reviewer
+4. PR 合并，pr-merge.yml 自动更新标签为 `openclaw-completed`
+
+---
+
+## 🔧 本地调试
 
 ```bash
-# 1. 获取 issue 详情
-gh issue view <num> --json title,body,labels
+# 手动触发多 Agent 流程
+./scripts/multi-agent-run.sh <issue_number>
 
-# 2. 创建分支
-git checkout -b openclaw/issue-<num>
+# 查看日志
+tail -f logs/multi-agent-$(date '+%Y-%m-%d').log
+tail -f logs/cron-heartbeat.log
 
-# 3. 执行变更
-# (根据 issue 内容移动/创建/修改文件)
-
-# 4. 🔍 验证变更 (关键步骤!)
-./scripts/validate-changes.sh <num>
-
-# 5. 提交 (仅当验证通过)
-git add -A
-git commit -m "fix: description (closes #<num>)"
-
-# 6. 推送并创建 PR
-git push -u origin openclaw/issue-<num>
-gh pr create --fill
-
-# 7. 合并 PR
-gh pr merge <num> --merge
-
-# 8. 关闭 issue
-gh issue close <num>
+# 仅扫描 Issue
+./scripts/scan-issues.sh
 ```
 
 ---
 
-## ✅ 验证清单
+## 🚨 常见错误
 
-提交前必须确认：
-
-- [ ] 文件操作已验证（移动/创建/删除）
-- [ ] 编译成功（`make clean && make`）
-- [ ] 程序运行正常（如有可执行文件）
-- [ ] 配置文件语法正确（JSON/YAML）
-- [ ] 解决方案文档已创建
-- [ ] 提交信息规范
+| 错误 | 原因 | 解决 |
+|------|------|------|
+| `GH_TOKEN: 未配置` | workflow 用了 `secrets.GH_TOKEN` | 改用 `github.token` |
+| PR 没合并 | Reviewer 没调用 `gh pr merge` | 检查 `multi-agent-run.sh` Reviewer 阶段 |
+| 状态标签不一致 | pr-merge.yml 失败 | 检查 workflow 中 `GH_TOKEN` |
+| 代码与 Issue 不符 | Developer 用模板而非 SPEC | 重写 Developer 阶段逻辑 |
 
 ---
 
-## 🚫 常见错误
-
-### ❌ 只创建文档，不执行变更
-```
-错误：只创建 SOLUTION-4.md，没有移动 hello.cpp
-正确：先移动文件，验证，再创建文档
-```
-
-### ❌ 不验证就提交
-```
-错误：假设 AI 执行正确，直接提交
-正确：运行 ./scripts/validate-changes.sh 确认
-```
-
-### ❌ 忽略编译测试
-```
-错误：修改代码后不编译
-正确：make clean && make && ./hello
-```
-
----
-
-## 📁 项目结构
-
-```
-openclaw-auto-dev/
-├── src/                    # C++ 源文件
-│   └── hello.cpp
-├── scripts/                # 自动化脚本
-│   ├── process-issue.sh    # Issue 处理主流程
-│   └── validate-changes.sh # 智能验证系统
-├── Makefile                # 构建配置
-├── opencode.json           # AI 规则配置
-├── AGENTS.md               # 本文件
-├── POST-MORTEM.md          # 事后分析
-└── SOLUTION-*.md           # 解决方案文档
-```
-
----
-
-## 🛠️ 工具
-
-### 验证脚本
-```bash
-# 智能验证 - 根据 issue 内容自动选择验证策略
-./scripts/validate-changes.sh <issue_number>
-```
-
-### Issue 处理
-```bash
-# 自动化处理完整流程
-./scripts/process-issue.sh <issue_number>
-```
-
-### GitHub CLI
-```bash
-# 查看 issue
-gh issue view <num>
-
-# 创建 PR
-gh pr create --title "Fix: ..." --body "Closes #<num>"
-
-# 合并 PR
-gh pr merge <num> --merge
-```
-
----
-
-## 📖 参考
-
-- **POST-MORTEM.md** - Issue #4 的事后分析（为什么需要验证）
-- **opencode.json** - AI 行为规则配置
-- **scripts/validate-changes.sh** - 验证系统实现
-
----
-
-**最后更新**: 2026-03-19  
-**核心教训**: 验证是质量的生命线
+**完整设计文档**: [MULTI_AGENT_DESIGN.md](./MULTI_AGENT_DESIGN.md)
