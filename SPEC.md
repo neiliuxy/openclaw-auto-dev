@@ -1,14 +1,14 @@
-# Issue #56 需求规格说明书
+# Issue #60 需求规格说明书
 
 ## 1. 概述
-- **Issue**: #56
-- **标题**: skill-pipeline-test
+- **Issue**: #60
+- **标题**: skill-fixed-test
 - **处理时间**: 2026-03-21
 
 ## 2. 需求分析
 
 ### 背景
-测试 skill pipeline 是否正常工作
+实现 `src/skill_fixed.cpp`
 
 ## 3. 功能点拆解
 
