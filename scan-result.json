@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-21T23:34:18+08:00",
+  "timestamp": "2026-03-21T23:42:27+08:00",
   "status": "new_issue",
   "message": "发现新 Issue",
-  "issue_number": 56,
-  "issue_title": "skill-pipeline-test",
+  "issue_number": 60,
+  "issue_title": "skill-fixed-test",
   "scan_log": "/home/admin/.openclaw/workspace/openclaw-auto-dev/logs/scan-2026-03-21.log"
 }
