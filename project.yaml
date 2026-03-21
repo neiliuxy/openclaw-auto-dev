@@ -1,0 +1,13 @@
+# OpenClaw Auto Dev 项目配置
+repo: neiliuxy/openclaw-auto-dev
+
+llm:
+  provider: openclaw
+  model: minimax-cn/MiniMax-M2.7
+
+build_cmd: make
+test_cmd: make test
+
+languages:
+  - cpp
+  - python
