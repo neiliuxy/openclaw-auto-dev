@@ -56,6 +56,15 @@ EOF
 
 echo "[$timestamp] 扫描完成：$status - $message" >> "$LOG_FILE"
 
+# 发送飞书通知（只有在新 Issue 出现时才通知，避免骚扰）
+NOTIFY_SCRIPT="$SCRIPT_DIR/notify-feishu.sh"
+if [ -x "$NOTIFY_SCRIPT" ]; then
+    if [ "$status" = "new_issue" ]; then
+        "$NOTIFY_SCRIPT" "🎉 发现新 Issue #$issue_number" "📝 $issue_title\n\n🚀 已开始自动处理。" >> "$LOG_FILE" 2>&1
+    fi
+    # idle / processing 状态不发通知，避免骚扰
+fi
+
 # 发现新 Issue → 触发 Multi-Agent 四角色流程
 if [ "$status" = "new_issue" ] && [ "$issue_number" != "null" ]; then
     echo "[$timestamp] 🎯 发现新 Issue #$issue_number，开始 Multi-Agent 流程..." >> "$LOG_FILE"
