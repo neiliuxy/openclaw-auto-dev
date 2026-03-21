@@ -24,10 +24,17 @@ jobs:
 
       - name: Check for processing issues
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          # 检查是否有正在处理的 Issue
-          processing=$(gh issue list --state open --label "openclaw-processing" --limit 1 2>&1) || true
+          # 检查是否有正在处理的 Issue（multi-agent 流程各阶段）
+          for label in openclaw-processing openclaw-architecting openclaw-planning openclaw-developing openclaw-testing openclaw-reviewing; do
+            processing=$(gh issue list --state open --label "$label" --limit 1 2>&1) || true
+            if [ -n "$processing" ] && echo "$processing" | grep -q "number"; then
+              echo "⚠️ 有 Issue 正在处理 ($label)，跳过本次检查"
+              echo "processing" > /tmp/scan_status.txt
+              exit 0
+            fi
+          done
           
           if [ -n "$processing" ]; then
             echo "⚠️ 已有 Issue 在处理中，跳过本次检查"
@@ -42,7 +49,7 @@ jobs:
       - name: Check for new issues
         id: check_new
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           # 查询 openclaw-new 状态的 Issue
           new_issues=$(gh issue list --state open --label "openclaw-new" --json number,title,createdAt --limit 1 2>&1) || true

@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-19T10:00:01+08:00",
-  "status": "idle",
-  "message": "无新 Issue 需要处理",
-  "issue_number": null,
-  "issue_title": null,
-  "scan_log": "/home/admin/.openclaw/workspace/openclaw-auto-dev/logs/scan-2026-03-19.log"
+  "timestamp": "2026-03-22T00:44:17+08:00",
+  "status": "new_issue",
+  "message": "发现新 Issue",
+  "issue_number": 64,
+  "issue_title": "skill-test: 二叉树遍历",
+  "scan_log": "/home/admin/.openclaw/workspace/openclaw-auto-dev/logs/scan-2026-03-22.log"
 }

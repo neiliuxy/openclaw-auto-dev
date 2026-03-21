@@ -1,12 +1,16 @@
 #!/bin/bash
 # OpenClaw Auto Dev - 定时心跳检查（cron 专用）
-# 用法：/scripts/cron-heartbeat.sh
+# 用法：./scripts/cron-heartbeat.sh
+# 职责：扫描新 Issue → 发现则触发 Multi-Agent 四角色流程
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 REPORT_FILE="$PROJECT_ROOT/scan-result.json"
+LOG_FILE="$PROJECT_ROOT/logs/cron-heartbeat.log"
+
+mkdir -p "$PROJECT_ROOT/logs"
 
 # 执行扫描
 "$SCRIPT_DIR/scan-issues.sh"
@@ -24,7 +28,7 @@ timestamp=$(jq -r '.timestamp' "$REPORT_FILE")
 issue_number=$(jq -r '.issue_number // "null"' "$REPORT_FILE")
 issue_title=$(jq -r '.issue_title // "null"' "$REPORT_FILE")
 
-# 写入报告文件（供 OpenClaw 读取）
+# 写入报告文件
 cat > "$PROJECT_ROOT/cron-report.md" <<EOF
 ## 🔍 OpenClaw Auto Dev Issue 扫描结果
 
@@ -50,5 +54,19 @@ cat >> "$PROJECT_ROOT/cron-report.md" <<EOF
 **系统状态**: $([ "$status" = "idle" ] && echo "✅ 正常运行" || echo "⚠️ 有任务进行中")
 EOF
 
-# 日志
-echo "[$timestamp] 扫描完成：$status - $message" >> "$PROJECT_ROOT/logs/cron-heartbeat.log"
+echo "[$timestamp] 扫描完成：$status - $message" >> "$LOG_FILE"
+
+# 发送飞书通知（只有在新 Issue 出现时才通知，避免骚扰）
+NOTIFY_SCRIPT="$SCRIPT_DIR/notify-feishu.sh"
+if [ -x "$NOTIFY_SCRIPT" ]; then
+    if [ "$status" = "new_issue" ]; then
+        "$NOTIFY_SCRIPT" "🎉 发现新 Issue #$issue_number" "📝 $issue_title\n\n🚀 已开始自动处理。" >> "$LOG_FILE" 2>&1
+    fi
+    # idle / processing 状态不发通知，避免骚扰
+fi
+
+# 发现新 Issue → 触发 Multi-Agent 四角色流程
+if [ "$status" = "new_issue" ] && [ "$issue_number" != "null" ]; then
+    echo "[$timestamp] 🎯 发现新 Issue #$issue_number，开始 Multi-Agent 流程..." >> "$LOG_FILE"
+    "$SCRIPT_DIR/multi-agent-run.sh" "$issue_number" >> "$LOG_FILE" 2>&1
+fi

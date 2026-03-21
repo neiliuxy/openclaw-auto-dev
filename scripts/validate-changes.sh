@@ -56,8 +56,8 @@ parse_validation_requirements() {
         echo "CHECK_FILE_MOVE=true" >> "$config_file"
         
         # 尝试提取源文件和目标目录
-        local src_file=$(echo "$issue_body" | grep -oP '(?<=从|from )[`\']?[\w./]+[`\']?' | head -1 | tr -d "'\`")
-        local dst_dir=$(echo "$issue_body" | grep -oP '(?<=到|to )[`\']?[\w./]+[`\']?' | head -1 | tr -d "'\`")
+        local src_file=$(echo "$issue_body" | grep -oP '(?<=from )[\w./]+' | head -1 | tr -d "'")
+        local dst_dir=$(echo "$issue_body" | grep -oP '(?<=to )[\w./]+' | head -1 | tr -d "'")
         
         if [ -n "$src_file" ]; then
             echo "SRC_FILE=$src_file" >> "$config_file"
@@ -196,7 +196,7 @@ validate_code_modify() {
     log_step "验证代码修改..."
     
     # 获取修改的文件列表
-    local modified_files=$(git diff --name-status HEAD~1 | grep "^M" | awk '{print $2}')
+    local modified_files=$(git diff --name-status HEAD~1 | grep "^M" | grep -v "scan-result.json" | awk '{print $2}')
     
     if [ -z "$modified_files" ]; then
         log_warn "没有检测到修改的文件"
@@ -354,45 +354,45 @@ main() {
     
     # 执行配置的验证检查
     if [ "${CHECK_FILE_MOVE:-false}" = "true" ]; then
-        ((checks_run++))
-        validate_file_move || ((errors++))
+        ((checks_run++)) || true
+        validate_file_move || ((errors++)) || true
     fi
     
     if [ "${CHECK_FILE_CREATE:-false}" = "true" ]; then
-        ((checks_run++))
-        validate_file_create || ((errors++))
+        ((checks_run++)) || true
+        validate_file_create || ((errors++)) || true
     fi
     
     if [ "${CHECK_FILE_DELETE:-false}" = "true" ]; then
-        ((checks_run++))
-        validate_file_delete || ((errors++))
+        ((checks_run++)) || true
+        validate_file_delete || ((errors++)) || true
     fi
     
     if [ "${CHECK_CODE_MODIFY:-false}" = "true" ]; then
-        ((checks_run++))
-        validate_code_modify || ((errors++))
+        ((checks_run++)) || true
+        validate_code_modify || ((errors++)) || true
     fi
     
     if [ "${CHECK_BUILD:-false}" = "true" ]; then
-        ((checks_run++))
-        validate_build || ((errors++))
+        ((checks_run++)) || true
+        validate_build || ((errors++)) || true
     fi
     
     if [ "${CHECK_RUN:-false}" = "true" ]; then
-        ((checks_run++))
-        validate_run || ((errors++))
+        ((checks_run++)) || true
+        validate_run || ((errors++)) || true
     fi
     
     if [ "${CHECK_CONFIG:-false}" = "true" ]; then
-        ((checks_run++))
-        validate_config || ((errors++))
+        ((checks_run++)) || true
+        validate_config || ((errors++)) || true
     fi
     
     # 如果没有特定检查，执行基础验证
     if [ $checks_run -eq 0 ]; then
         log_warn "没有特定验证需求，执行基础验证..."
-        validate_code_modify || ((errors++))
-        ((checks_run++))
+        validate_code_modify || ((errors++)) || true
+        ((checks_run++)) || true
     fi
     
     echo ""

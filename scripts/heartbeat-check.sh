@@ -45,7 +45,7 @@ if [ -f "$PROJECT_ROOT/scan-result.json" ]; then
     
     if [ "$STATUS" = "new_issue" ] && [ -n "$ISSUE_NUMBER" ]; then
         echo "🚀 发现新 Issue #$ISSUE_NUMBER，开始自动处理..."
-        "$SCRIPT_DIR/process-issue.sh" "$ISSUE_NUMBER"
+        "$SCRIPT_DIR/multi-agent-run.sh" "$ISSUE_NUMBER"
     fi
 fi
 

@@ -1,0 +1,31 @@
+你是 Agent-Developer。请为 Issue #64 实现代码。
+
+**Issue 信息：**
+- 标题：skill-test: 二叉树遍历
+- 描述：## 需求
+
+实现 `src/binary_tree.cpp`，包含二叉树节点遍历功能。
+
+## 函数签名
+
+```cpp
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+};
+
+// 前序遍历
+void inorder(TreeNode* root);
+```
+
+## 验收标准
+
+- [ ] 代码可编译（g++ -std=c++17）
+- [ ] 递归实现前序遍历
+
+**任务：**
+请分析 Issue 需求，实现代码文件。把每个文件的完整内容输出为 Markdown code block，格式为：```file: src/文件名```
+
+直接输出代码文件，不要解释。每个文件单独一个 code block。
