@@ -1,19 +1,8 @@
-你是 Agent-Developer。请为 Issue #42 实现代码。
+你是 Agent-Developer。请为 Issue #44 实现代码。
 
 **Issue 信息：**
-- 标题：test: 验证代码生成修复
-- 描述：## 测试目的
-
-验证代码生成修复后，能正确生成新文件。
-
-## 任务
-
-实现 `src/adder.cpp`，包含一个 `add(int a, int b)` 函数，返回两数之和。
-
-## 验收标准
-
-- [ ] 生成 `src/adder.cpp` 文件
-- [ ] 代码可编译
+- 标题：test: 验证文件命名修复
+- 描述：实现 `src/calculator.cpp`，包含 add 函数。
 
 **任务：**
 请分析 Issue 需求，实现代码文件。把每个文件的完整内容输出为 Markdown code block，格式为：```file: src/文件名```
