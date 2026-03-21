@@ -1,14 +1,32 @@
-# Issue #60 需求规格说明书
+# Issue #62 需求规格说明书
 
 ## 1. 概述
-- **Issue**: #60
-- **标题**: skill-fixed-test
-- **处理时间**: 2026-03-21
+- **Issue**: #62
+- **标题**: feat: 添加 C++ 字符串反转工具
+- **处理时间**: 2026-03-22
 
 ## 2. 需求分析
 
 ### 背景
-实现 `src/skill_fixed.cpp`
+## 需求
+
+在 `src/string_reverse.cpp` 中实现一个字符串反转工具。
+
+## 功能要求
+
+实现以下函数：
+
+```cpp
+// 反转字符串
+std::string reverse_string(const std::string& s);
+```
+
+## 验收标准
+
+- [ ] `reverse_string("hello")` 返回 `"olleh"`
+- [ ] `reverse_string("")` 返回 `""`（空字符串）
+- [ ] `reverse_string("a")` 返回 `"a"`（单字符）
+- [ ] 代码可编译运行（g++ -std=c++17）
 
 ## 3. 功能点拆解
 
