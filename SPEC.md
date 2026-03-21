@@ -1,49 +1,22 @@
-# Issue #64 需求规格说明书
+# Issue #68 - 快速排序 (Quick Sort)
 
-## 1. 概述
-- **Issue**: #64
-- **标题**: skill-test: 二叉树遍历
-- **处理时间**: 2026-03-22
+## 1. 需求
 
-## 2. 需求分析
+实现 `src/quick_sort.cpp`，包含快速排序算法。
 
-### 背景
-## 需求
-
-实现 `src/binary_tree.cpp`，包含二叉树节点遍历功能。
-
-## 函数签名
+## 2. 函数签名
 
 ```cpp
-struct TreeNode {
-    int val;
-    TreeNode* left;
-    TreeNode* right;
-    TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
-};
-
-// 前序遍历
-void inorder(TreeNode* root);
+void quick_sort(std::vector<int>& arr, int left, int right);
 ```
 
-## 验收标准
+## 3. 验收标准
 
 - [ ] 代码可编译（g++ -std=c++17）
-- [ ] 递归实现前序遍历
+- [ ] 排序结果正确
 
-## 3. 功能点拆解
+## 4. 实现要点
 
-根据 Issue 描述提取功能点。
-
-## 4. 技术方案
-
-### 4.1 文件结构
-根据 Issue 中指定的文件名确定。
-
-### 4.2 核心模块
-[由 Developer 根据 SPEC 补充]
-
-## 5. 验收标准
-- [ ] 代码可编译运行
-- [ ] 实现 Issue 要求的所有功能
-- [ ] 编译通过无警告
+- 使用标准的快速排序分区（partition）策略
+- 递归地对左右子数组排序
+- 处理边界情况（left >= right 时递归终止）
