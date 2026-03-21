@@ -248,7 +248,7 @@ private: std::map<std::string, Section> data_; };
         code = '''#include "ini_parser.h"
 namespace ini { /* 实现 */ }
 '''
-    with open("/tmp/" + filepath.replace("/", "_") + ".cpp", "w") as f:
+    with open("/tmp/" + filepath.replace("/", "_"), "w") as f:
         f.write(code)
     print("GENERATED:" + filepath)
 elif 'json' in issue_title.lower() or 'json' in issue_body.lower():
@@ -257,7 +257,7 @@ elif 'json' in issue_title.lower() or 'json' in issue_body.lower():
 #include <string>
 int main() { return 0; }
 '''
-    with open("/tmp/" + filepath.replace("/", "_") + ".cpp", "w") as f:
+    with open("/tmp/" + filepath.replace("/", "_"), "w") as f:
         f.write(code)
     print("GENERATED:" + filepath)
 else:
@@ -280,7 +280,7 @@ int main() {{
     std::cout << "Issue #{issue_number}" << std::endl;
     return 0; }}
 '''
-    with open("/tmp/" + filepath.replace("/", "_") + ".cpp", "w") as f:
+    with open("/tmp/" + filepath.replace("/", "_"), "w") as f:
         f.write(code)
     print("GENERATED:" + filepath)
 PYEOF
