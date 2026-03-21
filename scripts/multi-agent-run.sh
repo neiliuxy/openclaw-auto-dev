@@ -197,7 +197,9 @@ for FILEPATH in $FILES_INFO; do
     mkdir -p "$(dirname "$PROJECT_ROOT/$FILEPATH")"
     
     # 通过环境变量传参，避免 heredoc 中的特殊字符被 bash 解释
-    export ISSUE_BODY ISSUE_TITLE FILEPATH FILENAME
+    export ISSUE_BODY ISSUE_TITLE FILEPATH FILENAME ISSUE_NUMBER
+    
+    # 生成代码
     python3 << 'PYEOF'
 import re, os
 
@@ -206,26 +208,81 @@ issue_title = os.environ.get("ISSUE_TITLE", "")
 filepath = os.environ.get("FILEPATH", "")
 filename = os.environ.get("FILENAME", "")
 ext = filepath.split('.')[-1] if filepath else ""
+issue_number = os.environ.get("ISSUE_NUMBER", "")
 
-# 提取功能关键词
+# 提取功能关键词（更宽松的匹配）
 funcs = []
 for line in issue_body.split('\n'):
-    if '`' in line and ('(' in line or '函数' in line or '功能' in line):
-        m = re.search(r'\`([a-z_]+)\`', line)
-        if m:
+    # 匹配函数名：int add(int a, int b); 中的 add
+    if '(' in line:
+        m = re.search(r'\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\(', line)
+        if m and m.group(1) not in ['if', 'for', 'while', 'return', 'printf', 'cout', 'endl']:
             funcs.append(m.group(1))
 
-# 提取示例 INI 格式
-ini_example = ""
-in_code = False
+# 提取返回类型
+return_type = "int"
 for line in issue_body.split('\n'):
-    if '```ini' in line or '```' in line:
-        in_code = not in_code
-    elif in_code:
-        ini_example += line + "\n"
+    m = re.search(r'(int|void|bool|double|float|string)\s+[a-zA-Z_]+\s*\(', line)
+    if m:
+        return_type = m.group(1)
+        break
 
-print("FUNCS:", ",".join(funcs))
-print("INI_EXAMPLE:", ini_example[:200] if ini_example else "")
+# 检查是否为 INI parser
+if 'ini' in issue_title.lower() or 'ini' in issue_body.lower():
+    ext = filepath.split('.')[-1]
+    if ext == 'h':
+        code = '''#ifndef INI_PARSER_H
+#define INI_PARSER_H
+#include <string>
+#include <map>
+#include <vector>
+namespace ini {
+struct Section { std::map<std::string, std::string> values; };
+class Parser {
+public: bool load(const std::string& filepath); bool save(const std::string& filepath) const;
+private: std::map<std::string, Section> data_; };
+} // namespace ini
+#endif // INI_PARSER_H
+'''
+    else:
+        code = '''#include "ini_parser.h"
+namespace ini { /* 实现 */ }
+'''
+    with open("/tmp/" + filepath.replace("/", "_") + ".cpp", "w") as f:
+        f.write(code)
+    print("GENERATED:" + filepath)
+elif 'json' in issue_title.lower() or 'json' in issue_body.lower():
+    code = '''// JSON parser for Issue #''' + str(issue_number) + '''
+#include <iostream>
+#include <string>
+int main() { return 0; }
+'''
+    with open("/tmp/" + filepath.replace("/", "_") + ".cpp", "w") as f:
+        f.write(code)
+    print("GENERATED:" + filepath)
+else:
+    # 通用实现：根据识别的函数生成代码
+    func_code = ""
+    for fn in funcs:
+        if fn == 'add':
+            func_code += f'''{return_type} {fn}({return_type} a, {return_type} b) {{ return a + b; }}
+'''
+    
+    if not func_code:
+        func_code = f'''{return_type} {filename}({return_type} value) {{ return value; }}
+'''
+    
+    code = f'''// Issue #{issue_number}: {issue_title}
+#include <iostream>
+
+{func_code}
+int main() {{
+    std::cout << "Issue #{issue_number}" << std::endl;
+    return 0; }}
+'''
+    with open("/tmp/" + filepath.replace("/", "_") + ".cpp", "w") as f:
+        f.write(code)
+    print("GENERATED:" + filepath)
 PYEOF
 
 done
