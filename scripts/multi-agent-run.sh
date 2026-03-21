@@ -457,12 +457,23 @@ Closes #$ISSUE_NUMBER" \
     --head "$DEV_BRANCH" > /dev/null 2>&1 || true
 
 PR_NUM=$(gh pr list --head "$DEV_BRANCH" --repo "$REPO" --json number --jq '.[0].number' 2>/dev/null || echo "")
-gh issue edit "$ISSUE_NUMBER" \
-    --remove-label "openclaw-reviewing" \
-    --add-label "openclaw-pr-created" \
-    --repo "$REPO" 2>/dev/null || true
 
-log "✅ PR #$PR_NUM 已创建"
+log "🔀 合并 PR #$PR_NUM..."
+if gh pr merge "$PR_NUM" --repo "$REPO" --admin --merge 2>/dev/null; then
+    gh issue edit "$ISSUE_NUMBER" \
+        --remove-label "openclaw-reviewing" \
+        --add-label "openclaw-completed" \
+        --repo "$REPO" 2>/dev/null || true
+    gh issue close "$ISSUE_NUMBER" --repo "$REPO" 2>/dev/null || true
+    log "✅ PR #$PR_NUM 已合并，Issue #$ISSUE_NUMBER 已关闭"
+else
+    gh issue edit "$ISSUE_NUMBER" \
+        --remove-label "openclaw-reviewing" \
+        --add-label "openclaw-pr-created" \
+        --repo "$REPO" 2>/dev/null || true
+    log "⚠️ PR #$PR_NUM 创建成功但合并失败（需 CI 通过或人工合并）"
+fi
+
 log "=========================================="
 log "✅ Issue #$ISSUE_NUMBER 处理完成！"
 log "=========================================="
