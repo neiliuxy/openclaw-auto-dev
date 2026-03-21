@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-21T13:53:45+08:00",
+  "timestamp": "2026-03-21T18:01:37+08:00",
   "status": "new_issue",
   "message": "发现新 Issue",
-  "issue_number": 23,
-  "issue_title": "feat: 为 hello.cpp 添加单元测试框架",
+  "issue_number": 27,
+  "issue_title": "feat: 添加 C++ 文件搜索工具 file_finder",
   "scan_log": "/home/admin/.openclaw/workspace/openclaw-auto-dev/logs/scan-2026-03-21.log"
 }
