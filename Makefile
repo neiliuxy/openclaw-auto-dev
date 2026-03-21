@@ -28,3 +28,12 @@ clean_test:
 	rm -f hello_test
 
 .PHONY: test clean_test
+
+code_stats: src/code_stats.cpp
+	g++ -std=c++17 -fsyntax-only src/code_stats.cpp
+
+code_stats_run: src/code_stats.cpp
+	g++ -std=c++17 -o code_stats src/code_stats.cpp
+
+clean_stats:
+	rm -f code_stats
