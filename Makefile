@@ -17,3 +17,14 @@ clean_test:
 	rm -f hello_test
 
 .PHONY: clean test clean_test
+
+test: hello_test
+	./hello_test
+
+hello_test: tests/hello_test.cpp
+	g++ -std=c++11 -I/usr/include -lgtest -lgtest_main -pthread -o hello_test tests/hello_test.cpp
+
+clean_test:
+	rm -f hello_test
+
+.PHONY: test clean_test
