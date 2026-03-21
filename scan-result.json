@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-20T22:00:01+08:00",
-  "status": "idle",
-  "message": "无新 Issue 需要处理",
-  "issue_number": null,
-  "issue_title": null,
-  "scan_log": "/home/admin/.openclaw/workspace/openclaw-auto-dev/logs/scan-2026-03-20.log"
+  "timestamp": "2026-03-21T13:53:45+08:00",
+  "status": "new_issue",
+  "message": "发现新 Issue",
+  "issue_number": 23,
+  "issue_title": "feat: 为 hello.cpp 添加单元测试框架",
+  "scan_log": "/home/admin/.openclaw/workspace/openclaw-auto-dev/logs/scan-2026-03-21.log"
 }
