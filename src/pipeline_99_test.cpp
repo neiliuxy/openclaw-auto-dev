@@ -9,12 +9,12 @@
 
 using namespace pipeline;
 
-// Test: 验证 Issue #99 的初始状态（Stage 1 - Architect 完成）
+// Test: 验证 Issue #99 的当前状态（Developer Stage 2）
 void test_99_initial_stage() {
-    // Architect 阶段完成后，状态应为 1
+    // Developer 阶段，状态应为 2
     int stage = read_stage(99, ".pipeline-state");
-    assert(stage == 1);
-    std::cout << "✅ T1 Issue #99 initial stage = 1 (ArchitectDone) passed\n";
+    assert(stage == 2);
+    std::cout << "✅ T1 Issue #99 current stage = 2 (DeveloperDone) passed\n";
 }
 
 // Test: 验证 Developer 阶段状态写入和读取
