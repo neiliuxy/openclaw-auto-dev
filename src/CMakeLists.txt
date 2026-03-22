@@ -30,3 +30,9 @@ add_executable(pipeline_97_test ${CMAKE_CURRENT_LIST_DIR}/pipeline_97_test.cpp $
 target_include_directories(pipeline_97_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 add_test(NAME pipeline_97_test COMMAND pipeline_97_test)
 set_tests_properties(pipeline_97_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+# Issue #99: pipeline cron validation test executable
+add_executable(pipeline_99_test ${CMAKE_CURRENT_LIST_DIR}/pipeline_99_test.cpp ${CMAKE_CURRENT_LIST_DIR}/pipeline_state.cpp)
+target_include_directories(pipeline_99_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+add_test(NAME pipeline_99_test COMMAND pipeline_99_test)
+set_tests_properties(pipeline_99_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
