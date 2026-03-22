@@ -114,8 +114,7 @@ if [ -n "$issue_number" ] && [ "$issue_number" != "null" ]; then
     log "✅ 扫描完成，下一个处理：Issue #$issue_number"
     generate_report "new_issue" "发现新 Issue" "$issue_number" "$issue_title"
     
-    # 在这里可以调用 process-issue.sh 脚本
-    # "$SCRIPT_DIR/process-issue.sh" "$issue_number"
+    # Pipeline 由 cron-heartbeat.sh 调用 pipeline-runner.sh 触发
 else
     log "ℹ️ 无有效 Issue 需要处理"
     generate_report "idle" "无有效 Issue" "" ""
