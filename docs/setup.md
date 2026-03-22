@@ -23,7 +23,7 @@ git clone https://github.com/neiliuxy/openclaw-auto-dev.git
 cd openclaw-auto-dev
 ```
 
-### 步骤 2：确认 crontab 配置
+### 步骤 2：确认 cron 配置
 
 ```bash
 crontab -l
@@ -36,16 +36,17 @@ crontab -e
 # 添加: */30 * * * * cd /home/admin/.openclaw/workspace/openclaw-auto-dev && bash scripts/cron-heartbeat.sh >> logs/cron-heartbeat.log 2>&1
 ```
 
-### 步骤 3：GitHub Actions
+### 步骤 3：测试 Pipeline
 
-workflow 已配置。无需额外 Secrets（使用内置 `github.token`）。
-
-### 步骤 4：测试
-
-创建带 `openclaw-new` 标签的 Issue，等待 30 分钟自动处理，或手动：
+创建带 `openclaw-new` 标签的 Issue，然后手动触发：
 
 ```bash
-./scripts/multi-agent-run.sh <issue_number>
+pipeline-runner.sh <issue_number>
+```
+
+其中 `pipeline-runner.sh` 位于：
+```
+~/.openclaw/workspace/skills/openclaw-pipeline/pipeline-runner.sh
 ```
 
 ---
@@ -53,12 +54,11 @@ workflow 已配置。无需额外 Secrets（使用内置 `github.token`）。
 ## 📊 监控
 
 ```bash
-# 查看本地日志
-tail -f logs/cron-heartbeat.log
-tail -f logs/multi-agent-$(date '+%Y-%m-%d').log
+# 查看 Pipeline 状态
+ls -la .pipeline-state/
 
-# 查看 GitHub Actions
-gh run list --limit 5
+# 查看 Pipeline 日志
+tail -f logs/pipeline-$(date '+%Y-%m-%d').log
 
 # 查看 Issue 状态
 gh issue list --label "openclaw-new"
@@ -71,10 +71,6 @@ gh issue list --label "openclaw-completed"
 
 | 问题 | 解决方案 |
 |------|----------|
-| Issue 未自动处理 | 手动 `./scripts/multi-agent-run.sh <issue_number>` |
-| pr-merge 标签更新失败 | 查看 GHA run 日志是否有 `GH_TOKEN` 错误 |
-| LLM 代码生成失败 | 查看 `logs/multi-agent-*.log` 失败阶段 |
-
----
-
-**详细设计**: [MULTI_AGENT_DESIGN.md](../MULTI_AGENT_DESIGN.md)
+| Issue 未自动处理 | 手动调用 `pipeline-runner.sh <issue_number>` |
+| Pipeline 卡在某阶段 | 检查 `.pipeline-state/<issue>_stage` 状态 |
+| 重新开始 | `rm .pipeline-state/<issue>_stage` |

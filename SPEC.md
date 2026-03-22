@@ -1,22 +1,28 @@
-# Issue #68 - 快速排序 (Quick Sort)
+# Issue #81 需求规格说明书
 
-## 1. 需求
+## 1. 概述
+- **Issue**: #81
+- **标题**: test: 4-session pipeline verification
+- **处理时间**: 2026-03-22
 
-实现 `src/quick_sort.cpp`，包含快速排序算法。
+## 2. 需求分析
 
-## 2. 函数签名
+### 背景
+验证 sessions_spawn 能否在 subagent 内正常工作
 
-```cpp
-void quick_sort(std::vector<int>& arr, int left, int right);
-```
+## 3. 功能点拆解
 
-## 3. 验收标准
+根据 Issue 描述提取功能点。
 
-- [ ] 代码可编译（g++ -std=c++17）
-- [ ] 排序结果正确
+## 4. 技术方案
 
-## 4. 实现要点
+### 4.1 文件结构
+根据 Issue 中指定的文件名确定。
 
-- 使用标准的快速排序分区（partition）策略
-- 递归地对左右子数组排序
-- 处理边界情况（left >= right 时递归终止）
+### 4.2 核心模块
+[由 Developer 根据 SPEC 补充]
+
+## 5. 验收标准
+- [ ] 代码可编译运行
+- [ ] 实现 Issue 要求的所有功能
+- [ ] 编译通过无警告
