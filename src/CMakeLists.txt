@@ -30,3 +30,9 @@ add_executable(pipeline_97_test ${CMAKE_CURRENT_LIST_DIR}/pipeline_97_test.cpp $
 target_include_directories(pipeline_97_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 add_test(NAME pipeline_97_test COMMAND pipeline_97_test)
 set_tests_properties(pipeline_97_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+# Issue #102: pipeline final verification test executable
+add_executable(pipeline_102_test ${CMAKE_CURRENT_LIST_DIR}/pipeline_102_test.cpp ${CMAKE_CURRENT_LIST_DIR}/pipeline_state.cpp)
+target_include_directories(pipeline_102_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+add_test(NAME pipeline_102_test COMMAND pipeline_102_test)
+set_tests_properties(pipeline_102_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
