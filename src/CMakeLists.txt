@@ -11,6 +11,7 @@ target_sources(algorithms
         ${CMAKE_CURRENT_LIST_DIR}/logger.cpp
         ${CMAKE_CURRENT_LIST_DIR}/file_finder.cpp
         ${CMAKE_CURRENT_LIST_DIR}/pipeline_notifier.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/pipeline_state.cpp
 )
 
 target_include_directories(algorithms INTERFACE ${CMAKE_CURRENT_LIST_DIR})
