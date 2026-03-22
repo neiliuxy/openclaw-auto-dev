@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-03-22T07:11:24+08:00",
-  "status": "new_issue",
-  "message": "发现新 Issue",
-  "issue_number": 77,
-  "issue_title": "test: 验证清理后的系统状态",
+  "timestamp": "2026-03-22T08:31:18+08:00",
+  "status": "idle",
+  "message": "无新 Issue 需要处理",
+  "issue_number": null,
+  "issue_title": null,
   "scan_log": "/home/admin/.openclaw/workspace/openclaw-auto-dev/logs/scan-2026-03-22.log"
 }
