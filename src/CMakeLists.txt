@@ -19,3 +19,8 @@ target_include_directories(algorithms INTERFACE ${CMAKE_CURRENT_LIST_DIR})
 # Issue #83: pipeline notification test executable
 add_executable(pipeline_83_test ${CMAKE_CURRENT_LIST_DIR}/pipeline_83_test.cpp ${CMAKE_CURRENT_LIST_DIR}/pipeline_notifier.cpp)
 target_include_directories(pipeline_83_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+
+# Issue #95: spawn order test executable
+add_executable(spawn_order_test ${CMAKE_CURRENT_LIST_DIR}/spawn_order_test.cpp ${CMAKE_CURRENT_LIST_DIR}/spawn_order.cpp)
+target_include_directories(spawn_order_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+add_test(NAME spawn_order_test COMMAND spawn_order_test)
