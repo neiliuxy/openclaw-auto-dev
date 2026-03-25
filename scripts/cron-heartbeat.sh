@@ -8,17 +8,46 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 REPORT_FILE="$PROJECT_ROOT/scan-result.json"
-LOG_FILE="$PROJECT_ROOT/logs/cron-heartbeat.log"
+LOG_DIR="$PROJECT_ROOT/logs"
+LOG_FILE="$LOG_DIR/cron-heartbeat.log"
+ERROR_LOG="$LOG_DIR/cron-error.log"
 PIPELINE_RUNNER="$HOME/.openclaw/workspace/skills/openclaw-pipeline/pipeline-runner.sh"
 
-mkdir -p "$PROJECT_ROOT/logs"
+# 日志轮转配置
+MAX_LOG_SIZE=5242880  # 5MB
+MAX_LOG_FILES=5       # 保留最近5个轮转日志
+
+mkdir -p "$LOG_DIR"
+
+# 日志轮转函数：超过 MAX_LOG_SIZE 则轮转
+rotate_log() {
+    local logfile="$1"
+    if [ ! -f "$logfile" ]; then return; fi
+    
+    local size=$(stat -c%s "$logfile" 2>/dev/null || stat -f%z "$logfile" 2>/dev/null || echo 0)
+    if [ "$size" -gt "$MAX_LOG_SIZE" ]; then
+        # 轮转日志：移动旧日志为 .1, .2, ...
+        for i in $(seq $((MAX_LOG_FILES - 1)) -1 1); do
+            if [ -f "${logfile}.${i}" ]; then
+                mv "${logfile}.${i}" "${logfile}.$((i + 1))"
+            fi
+        done
+        mv "$logfile" "${logfile}.1"
+        # 创建新的空日志文件
+        touch "$logfile"
+    fi
+}
+
+# 执行日志轮转
+rotate_log "$LOG_FILE"
+rotate_log "$ERROR_LOG"
 
 # 执行扫描
 "$SCRIPT_DIR/scan-issues.sh"
 
 # 读取扫描结果
 if [ ! -f "$REPORT_FILE" ]; then
-    echo "❌ 扫描失败：结果文件不存在" >> "$PROJECT_ROOT/logs/cron-error.log"
+    echo "❌ 扫描失败：结果文件不存在" >> "$ERROR_LOG"
     exit 1
 fi
 
