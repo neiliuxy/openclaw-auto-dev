@@ -9,13 +9,14 @@
 
 using namespace pipeline;
 
-// Test: 验证 Issue #97 的当前状态是有效的 Pipeline 阶段
+// Test: 验证 Issue #97 的当前状态（Pipeline 已演进，可能 1-4）
 void test_97_initial_stage() {
-    // Pipeline 状态应为有效的阶段值 (0-4)，且描述正确
+    // Pipeline 已演进，当前可能为 Stage 1-4
+    // 方案A: 灵活验证 - 检查有效的 pipeline 阶段
     int stage = read_stage(97, ".pipeline-state");
-    assert(stage >= 0 && stage <= 4);  // 有效的 Pipeline 阶段
+    assert(stage >= 1 && stage <= 4);  // 验证是有效的 pipeline 阶段
     std::string desc = stage_to_description(stage);
-    assert(desc != "Unknown");  // 描述必须有效
+    assert(desc != "Unknown");  // 验证描述有效
     std::cout << "✅ T1 Issue #97 current stage = " << stage << " (" << desc << ") passed\n";
 }
 
