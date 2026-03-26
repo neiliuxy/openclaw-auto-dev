@@ -24,11 +24,11 @@ void test_104_state_file_exists() {
     std::cout << "✅ T1 pipeline state file exists for Issue #104\n";
 }
 
-// Test: 验证 Issue #104 的初始阶段（Stage 1 - Architect 已完成）
+// Test: 验证 Issue #104 的当前阶段（Stage 2 - Developer 已完成）
 void test_104_initial_stage() {
     int stage = read_stage(104, ".pipeline-state");
-    assert(stage == 1);
-    std::cout << "✅ T2 Issue #104 current stage = 1 (ArchitectDone)\n";
+    assert(stage == 2);
+    std::cout << "✅ T2 Issue #104 current stage = 2 (DeveloperDone)\n";
 }
 
 // Test: 验证 SPEC.md 文件存在
@@ -111,21 +111,21 @@ void test_104_nonexistent_issue() {
 
 // Test: 验证 Developer 阶段可以正常切换
 void test_104_developer_stage_transition() {
-    // 从 Stage 1 (Architect) 切换到 Stage 2 (Developer)
+    // 从 Stage 2 (Developer) 切换到 Stage 3 (Tester)
     int current = read_stage(104, ".pipeline-state");
-    assert(current == 1);  // 确保当前是 ArchitectDone
+    assert(current == 2);  // 确保当前是 DeveloperDone
 
-    bool write_ok = write_stage(104, 2, ".pipeline-state");
+    bool write_ok = write_stage(104, 3, ".pipeline-state");
     assert(write_ok == true);
 
     int new_stage = read_stage(104, ".pipeline-state");
-    assert(new_stage == 2);
-    std::cout << "✅ T10 Developer stage transition 1->2 passed\n";
+    assert(new_stage == 3);
+    std::cout << "✅ T10 Developer stage transition 2->3 passed\n";
 
-    // 恢复到 Stage 1
-    write_ok = write_stage(104, 1, ".pipeline-state");
+    // 恢复到 Stage 2
+    write_ok = write_stage(104, 2, ".pipeline-state");
     assert(write_ok == true);
-    std::cout << "✅ T11 restore to stage 1 passed\n";
+    std::cout << "✅ T11 restore to stage 2 passed\n";
 }
 
 int main() {

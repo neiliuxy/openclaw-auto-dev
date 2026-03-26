@@ -47,12 +47,14 @@ int read_stage(int issue_number, const std::string& state_dir) {
         fin.close();
         
         // 简单解析: 查找 "stage": 数字
+        // 先查找 "stage" 关键字（避免被 "issue_num" 等混淆）
         size_t stage_pos = content.find("\"stage\"");
         if (stage_pos != std::string::npos) {
             size_t colon_pos = content.find(':', stage_pos);
             if (colon_pos != std::string::npos) {
                 size_t start = colon_pos + 1;
-                while (start < content.size() && (content[start] == ' ' || content[start] == '\t' || content[start] == '\n' || content[start] == '\r')) start++;
+                // 跳过空白和可能的引号
+                while (start < content.size() && (content[start] == ' ' || content[start] == '\t' || content[start] == '\n' || content[start] == '\r' || content[start] == '"')) start++;
                 size_t end = start;
                 while (end < content.size() && (isdigit(content[end]) || content[end] == '-')) end++;
                 if (end > start) {
@@ -60,7 +62,14 @@ int read_stage(int issue_number, const std::string& state_dir) {
                 }
             }
         }
-        return -1;
+        // JSON 解析失败，尝试旧格式（可能是纯整数但以 { 开头的情况）
+        // 这种情况不应该发生，但如果发生了，尝试把整个内容当作整数解析
+        try {
+            int stage = std::stoi(content);
+            return stage;
+        } catch (...) {
+            return -1;
+        }
     }
     
     // 旧格式：纯整数
