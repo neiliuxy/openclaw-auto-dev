@@ -7,6 +7,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 PROJECT_ROOT="${PIPELINE_PROJECT_ROOT:-$SCRIPT_DIR}"
+# 确保使用绝对路径
+PROJECT_ROOT="$(cd "$PROJECT_ROOT" && pwd)"
 STATE_DIR="$PROJECT_ROOT/.pipeline-state"
 LOG_DIR="$PROJECT_ROOT/logs"
 
@@ -56,7 +58,15 @@ read_stage() {
 
 write_stage() {
     mkdir -p "$STATE_DIR"
-    echo "$2" > "$(get_state_file "$1")"
+    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%S+08:00")
+    cat > "$(get_state_file "$1")" <<EOF
+{
+  "issue": $1,
+  "stage": $2,
+  "updated_at": "$timestamp",
+  "error": null
+}
+EOF
     log "📊 状态: stage=$2"
 }
 

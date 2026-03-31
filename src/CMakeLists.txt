@@ -1,3 +1,9 @@
+# MinStack test
+add_executable(min_stack_test ${CMAKE_CURRENT_LIST_DIR}/min_stack_test.cpp)
+target_include_directories(min_stack_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+target_compile_definitions(min_stack_test PRIVATE MIN_STACK_TEST)
+add_test(NAME min_stack_test COMMAND min_stack_test)
+
 # Source files library
 add_library(algorithms INTERFACE)
 
@@ -28,6 +34,7 @@ add_test(NAME spawn_order_test COMMAND spawn_order_test)
 # Issue #97: pipeline state validation test executable
 add_executable(pipeline_97_test ${CMAKE_CURRENT_LIST_DIR}/pipeline_97_test.cpp ${CMAKE_CURRENT_LIST_DIR}/pipeline_state.cpp)
 target_include_directories(pipeline_97_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+target_compile_definitions(pipeline_97_test PRIVATE STATE_DIR="${CMAKE_SOURCE_DIR}/.pipeline-state")
 add_test(NAME pipeline_97_test COMMAND pipeline_97_test)
 set_tests_properties(pipeline_97_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
