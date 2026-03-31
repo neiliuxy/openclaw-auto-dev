@@ -72,11 +72,38 @@ int read_stage(int issue_number, const std::string& state_dir) {
         }
     }
     
-    // 旧格式：纯整数
+    // 旧格式：纯整数（也可能是 {"issue_num":...,"stage":...} 但非标准格式）
+    // 先尝试直接读取整数
     int stage = -1;
     fin >> stage;
+    if (!fin.fail()) {
+        fin.close();
+        return stage;
+    }
+    
+    // 读取失败，重新尝试解析为 JSON（边界情况）
+    fin.clear();
+    fin.seekg(0, std::ios::beg);
+    std::string content((std::istreambuf_iterator<char>(fin)),
+                          std::istreambuf_iterator<char>());
     fin.close();
-    return stage;
+    
+    // 尝试在整个内容中查找 stage 值
+    size_t stage_pos = content.find("\"stage\"");
+    if (stage_pos != std::string::npos) {
+        size_t colon_pos = content.find(':', stage_pos);
+        if (colon_pos != std::string::npos) {
+            size_t start = colon_pos + 1;
+            while (start < content.size() && (content[start] == ' ' || content[start] == '\t' || content[start] == '\n' || content[start] == '\r' || content[start] == '"')) start++;
+            size_t end = start;
+            while (end < content.size() && (isdigit(content[end]) || content[end] == '-')) end++;
+            if (end > start) {
+                return std::stoi(content.substr(start, end - start));
+            }
+        }
+    }
+    
+    return -1;
 }
 
 bool write_stage(int issue_number, int stage, const std::string& state_dir) {
