@@ -49,6 +49,10 @@ scan-result.json
 cron-report.md
 *.tmp
 
+# Pipeline state files (runtime-generated, never commit)
+/.pipeline-state/[0-9]*_stage
+/.pipeline-state/stage_*.json
+
 # Python cache
 __pycache__/
 *.pyc

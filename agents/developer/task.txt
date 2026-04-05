@@ -1,10 +1,39 @@
-你是 Agent-Developer。请为 Issue #81 实现代码。
+你是 Agent-Developer。请为 Issue #64 实现代码。
 
 **Issue 信息：**
-- 标题：test: 4-session pipeline verification
-- 描述：验证 sessions_spawn 能否在 subagent 内正常工作
+- 标题：skill-test: 二叉树遍历
+- 描述：实现 `src/binary_tree.cpp`，包含 TreeNode 结构体和前序遍历（preorder）功能。
 
-**任务：**
-请分析 Issue 需求，实现代码文件。把每个文件的完整内容输出为 Markdown code block，格式为：```file: src/文件名```
+**函数签名**
 
-直接输出代码文件，不要解释。每个文件单独一个 code block。
+```cpp
+struct TreeNode {
+    int val;
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
+};
+
+// 前序遍历（Preorder: 根 → 左 → 右）
+void preorder(TreeNode* root);
+```
+
+**验收标准**
+- [ ] 代码可编译（g++ -std=c++17）
+- [ ] 递归实现前序遍历
+
+**代码风格参考**
+- 参考 `src/list_reverse.cpp` 的简单直接风格
+- TreeNode 放在文件顶部，不需要头文件
+- 直接在 .cpp 中实现，不拆分 .h
+- main() 中包含测试用例，输出遍历顺序（用空格分隔，末尾换行）
+
+**实现计划**
+1. 定义 TreeNode 结构体
+2. 实现递归 preorder 函数（root → left → right）
+3. 在 main() 中构建测试树并调用 preorder 验证
+
+**输出格式**
+把代码文件完整内容输出为 Markdown code block，格式为：```file: src/binary_tree.cpp```
+
+直接输出代码文件，不要解释。
