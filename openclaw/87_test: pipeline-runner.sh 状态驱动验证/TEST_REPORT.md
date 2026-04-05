@@ -2,13 +2,13 @@
 
 - **Issue**: 87
 - **Slug**: test: pipeline-runner.sh 状态驱动验证
-- **Test Date**: 2026-04-05T11:11:07+0800
-- **Build Status**: PASS
+- **Test Date**: 2026-04-05T11:11:14+0800
+- **Build Status**: FAIL
 
 ## Build Verification
 
 ```
-BUILD_SUCCESS
+BUILD_FAILED
 ```
 
 ## Test Cases
@@ -20,5 +20,5 @@ BUILD_SUCCESS
 
 ## Summary
 
-**Result**: PASS
+**Result**: FAIL
 
