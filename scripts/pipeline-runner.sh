@@ -14,6 +14,14 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_DIR/pipeline-$(date '+%Y-%m-%d').log"
 }
 
+notify_feishu() {
+    local stage_name="$1"
+    local issue_num="$2"
+    local message="$3"
+    local title="✅ $stage_name 完成 - Issue #$issue_num"
+    "$SCRIPT_DIR/notify-feishu.sh" "$title" "$message" 2>/dev/null || log "⚠️ 飞书通知发送失败"
+}
+
 read_config() {
     if [ ! -f "$PROJECT_ROOT/OPENCLAW.md" ]; then
         log "❌ OPENCLAW.md 不存在"
@@ -213,29 +221,30 @@ run_pipeline() {
     
     case $from_stage in
         0)
-            run_architect "$issue_num"; write_stage "$issue_num" 1
-            run_developer "$issue_num"; write_stage "$issue_num" 2
-            run_tester "$issue_num"; write_stage "$issue_num" 3
-            run_reviewer "$issue_num"; write_stage "$issue_num" 4
+            run_architect "$issue_num"; write_stage "$issue_num" 1; notify_feishu "Architect" "$issue_num" "SPEC.md 已生成"
+            run_developer "$issue_num"; write_stage "$issue_num" 2; notify_feishu "Developer" "$issue_num" "代码已实现"
+            run_tester "$issue_num"; write_stage "$issue_num" 3; notify_feishu "Tester" "$issue_num" "TEST_REPORT.md 已生成"
+            run_reviewer "$issue_num"; write_stage "$issue_num" 4; notify_feishu "Reviewer" "$issue_num" "PR 已合并"
             ;;
         1)
-            run_developer "$issue_num"; write_stage "$issue_num" 2
-            run_tester "$issue_num"; write_stage "$issue_num" 3
-            run_reviewer "$issue_num"; write_stage "$issue_num" 4
+            run_developer "$issue_num"; write_stage "$issue_num" 2; notify_feishu "Developer" "$issue_num" "代码已实现"
+            run_tester "$issue_num"; write_stage "$issue_num" 3; notify_feishu "Tester" "$issue_num" "TEST_REPORT.md 已生成"
+            run_reviewer "$issue_num"; write_stage "$issue_num" 4; notify_feishu "Reviewer" "$issue_num" "PR 已合并"
             ;;
         2)
-            run_tester "$issue_num"; write_stage "$issue_num" 3
-            run_reviewer "$issue_num"; write_stage "$issue_num" 4
+            run_tester "$issue_num"; write_stage "$issue_num" 3; notify_feishu "Tester" "$issue_num" "TEST_REPORT.md 已生成"
+            run_reviewer "$issue_num"; write_stage "$issue_num" 4; notify_feishu "Reviewer" "$issue_num" "PR 已合并"
             ;;
         3)
-            run_reviewer "$issue_num"; write_stage "$issue_num" 4
+            run_reviewer "$issue_num"; write_stage "$issue_num" 4; notify_feishu "Reviewer" "$issue_num" "PR 已合并"
             ;;
         4)
             log "✅ Issue #$issue_num 已完成，跳过"
             ;;
     esac
     
-    clear_state "$issue_num"
+    # Keep state file at stage 4 for post-pipeline verification
+    # (Removed clear_state call - state file now persists after completion)
     log "✅ Pipeline Issue #$issue_num 完成！"
 }
 
