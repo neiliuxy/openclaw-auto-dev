@@ -14,7 +14,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PIPELINE_RUNNER="$PROJECT_ROOT/scripts/pipeline-runner.sh"
 STATE_DIR="$PROJECT_ROOT/.pipeline-state"
 LOG_DIR="$PROJECT_ROOT/logs"
@@ -28,8 +28,8 @@ TC4_ISSUE=874
 TC5_ISSUE=875
 
 # 全局测试结果
-TESTS_PASSED=0
-TESTS_FAILED=0
+declare -i TESTS_PASSED=0
+declare -i TESTS_FAILED=0
 TEST_START_TIME=$(date '+%Y-%m-%d %H:%M:%S')
 
 log() {
@@ -38,12 +38,12 @@ log() {
 
 pass() {
     echo "  ✅ $1"
-    ((TESTS_PASSED++))
+    ((++TESTS_PASSED))
 }
 
 fail() {
     echo "  ❌ $1"
-    ((TESTS_FAILED++))
+    ((++TESTS_FAILED))
 }
 
 get_state_file() {
