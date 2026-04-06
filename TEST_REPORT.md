@@ -1,113 +1,41 @@
-# TEST_REPORT.md — Issue #97: OpenClaw Auto Dev Pipeline (Tester Stage)
+# Test Report - Pipeline 104
 
-**Date:** 2026-04-06
-**Tester Stage:** Stage 2
-**Branch:** openclaw/issue-97
-**Commit:** 9a1107a (chore(#0): developer stage - fix CTest registration and cleanup)
-**Repo:** neiliuxy/openclaw-auto-dev
+## Issue
+- **Issue #104**: test: pipeline全流程自动触发验证
+- **Author**: neiliuxy
+- **State**: CLOSED
 
----
-
-## Summary
-
-**BUILD: PASS** | **TESTS: 3/3 PASSED (100%)**
-
-All tests pass. The pipeline system core components are correctly implemented and verified.
-
----
+## PR
+- **PR #128**: fix(#97): improve read_stage() JSON fallback logic
 
 ## Build Status
-
-| Step | Result |
-|------|--------|
-| CMake configuration | ✅ PASS |
-| Compilation (make -j) | ✅ PASS |
-| Targets built | pipeline_83_test, spawn_order_test, pipeline_97_test, test_matrix |
-
-**Build command:** `cmake .. && make -j$(nproc)`
-**Compiler:** GNU 10.2.1, C++17
-**CMake:** 3.10+
-
----
+- **CMake**: ✅ Success
+- **Build**: ✅ All targets built successfully (8 targets)
 
 ## Test Results
+```
+Test project /home/admin/.openclaw/workspace/openclaw-auto-dev/build
+    Start 1: min_stack_test ...................   Passed    0.02 sec
+    Start 2: pipeline_83_test .................   Passed    0.01 sec
+    Start 3: spawn_order_test .................   Passed    0.01 sec
+    Start 4: pipeline_97_test ..................   Passed    0.01 sec
+    Start 5: pipeline_99_test ..................   Passed    0.01 sec
+    Start 6: pipeline_102_test .................   FAILED    0.27 sec
+    Start 7: pipeline_104_test .................   Passed    0.05 sec  ← TARGET TEST
+    Start 8: algorithm_test ...................   Passed    0.02 sec
 
-### Test Run: `ctest --output-on-failure`
+Tests passed: 7/8 (88%)
+Tests failed: 1/8 - pipeline_102_test (pre-existing, PR#128 fix not yet merged locally)
+```
 
-| # | Test Name | Status | Duration |
-|---|-----------|--------|----------|
-| 1 | pipeline_83_test | ✅ PASSED | 0.01 sec |
-| 2 | spawn_order_test | ✅ PASSED | 0.01 sec |
-| 3 | pipeline_97_test | ✅ PASSED | 0.01 sec |
+## Pipeline 104 Specific Result
+- **pipeline_104_test**: ✅ PASSED (0.05 sec)
+  - Issue #104 validation test completed successfully
 
-**Total: 3/3 passed (100%)** | **Total time: 0.05 sec**
-
----
-
-### Detail: pipeline_83_test (Issue #83) — ✅ 6/6 PASSED
-
-Tests the 4-stage notification system (Architect → Developer → Tester → Reviewer):
-
-| Test | Description | Result |
-|------|-------------|--------|
-| test_architect_notification | Architect message format + content | ✅ |
-| test_developer_notification | Developer message format + content | ✅ |
-| test_tester_notification | Tester message format + content | ✅ |
-| test_reviewer_notification | Reviewer message format + content | ✅ |
-| test_notifications_distinguishable | All 4 messages are distinct | ✅ |
-| test_issue_number_in_notification | Issue #83 appears in messages | ✅ |
-
-### Detail: spawn_order_test (Issue #95) — ✅ 21/21 PASSED
-
-Tests spawn sequence validation:
-
-| Category | Tests | Result |
-|-----------|-------|--------|
-| Forward transitions (1→2→3→4) | T1-T3 | ✅ All valid |
-| Skip-stage rejections (1→3, 1→4, 2→4) | T4-T6 | ✅ All rejected |
-| Backward transitions rejected | T7-T9 | ✅ 4→1, 3→1, 2→1 rejected |
-| Boundary edge cases | T10-T11 | ✅ 0→1, 4→5 accepted |
-| Same-stage rejections | T12-T13 | ✅ 1→1, 2→2 rejected |
-| Stage name mapping | T14-T20 | ✅ get_stage_name(1-4) correct, 0/5/-1 → Unknown |
-| Full sequence validation | T21 | ✅ 1→2→3→4 accepted |
-
-### Detail: pipeline_97_test (Issue #97) — ✅ 5/5 PASSED
-
-Tests pipeline state read/write/description:
-
-| Test | Description | Result |
-|------|-------------|--------|
-| T1 | Initial stage read (accepts -1 uninitialized) | ✅ |
-| T2 | write_stage(97, 2) returns true | ✅ |
-| T3 | read_stage(97) after write = 2 | ✅ |
-| T4 | Restore original stage | ✅ |
-| Descriptions | All stage→description mappings correct | ✅ |
-| Valid range | Stages 1-4 map to known descriptions | ✅ |
-| Non-existent | read_stage(99999) returns -1 | ✅ |
-
-**Note:** Issue #97's state file returns -1 (uninitialized/no file) as a valid initial state. The test was previously fixed to accept -1 in addition to 1-4.
+## Notes
+- **pipeline_102_test** failure: Pre-existing issue. PR #128 (which fixes this) has not been merged into the local repo yet. The source still asserts `stage == 1` but the pipeline has advanced beyond stage 1. This is a known issue tracked in PR #128.
+- All pipeline 104 tests passed
+- Ready to advance to stage 3 (Release)
 
 ---
-
-## Issues Found
-
-**No issues found in this test run.** All tests passed on first attempt.
-
----
-
-## Files Modified by Developer (Stage 1)
-
-- `src/CMakeLists.txt` — Fixed CTest registration (pipeline_97_test added)
-- `src/pipeline_97_test.cpp` — Fixed initial_stage assertion to accept -1
-- Removed spurious test binaries from repo root
-
----
-
-## Conclusion
-
-✅ **All 3 test binaries pass (32 total assertions)**
-- pipeline_83_test: 6/6 ✅
-- spawn_order_test: 21/21 ✅
-- pipeline_97_test: 5/5 ✅
-
-The pipeline system is correctly implemented. Ready to advance to Stage 3 (Reviewer).
+*Tester stage completed: 2026-04-06T10:21:00+08:00*
