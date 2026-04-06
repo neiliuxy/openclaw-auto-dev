@@ -62,14 +62,22 @@ int read_stage(int issue_number, const std::string& state_dir) {
                 }
             }
         }
-        // JSON 解析失败，尝试旧格式（可能是纯整数但以 { 开头的情况）
-        // 这种情况不应该发生，但如果发生了，尝试把整个内容当作整数解析
-        try {
-            int stage = std::stoi(content);
-            return stage;
-        } catch (...) {
-            return -1;
+        // JSON 解析失败，尝试从内容中提取纯整数（旧格式兼容）
+        // 查找第一个有效的整数（可能是 {N} 格式或其他简单格式）
+        size_t i = 0;
+        while (i < content.size() && !isdigit(content[i]) && content[i] != '-') i++;
+        if (i < content.size()) {
+            size_t j = i;
+            while (j < content.size() && (isdigit(content[j]) || content[j] == '-')) j++;
+            if (j > i) {
+                try {
+                    return std::stoi(content.substr(i, j - i));
+                } catch (...) {
+                    return -1;
+                }
+            }
         }
+        return -1;
     }
     
     // 旧格式：纯整数（也可能是 {"issue_num":...,"stage":...} 但非标准格式）
