@@ -9,13 +9,24 @@
 
 using namespace pipeline;
 
-// Test: 验证 Issue #99 的当前状态（Developer Stage 2）
-// FIXED: 改为灵活检查，接受任何有效阶段值 (1-4)
+// Test: 验证 pipeline state API 读写能力（使用合成 issue，不依赖遗留状态文件）
 void test_99_initial_stage() {
-    // Pipeline 已自动推进到某个阶段 (1-4)
-    int stage = read_stage(99, ".pipeline-state");
-    assert(stage >= 1 && stage <= 4);
-    std::cout << "✅ T1 Issue #99 current stage = " << stage << " (valid range 1-4) passed\n";
+    const int synthetic_issue = 99999;
+    int original = read_stage(synthetic_issue, ".pipeline-state");
+    
+    bool write_ok = write_stage(synthetic_issue, 2, ".pipeline-state");
+    assert(write_ok == true);
+    int stage = read_stage(synthetic_issue, ".pipeline-state");
+    assert(stage == 2);
+    
+    if (original >= 0) {
+        write_stage(synthetic_issue, original, ".pipeline-state");
+    } else {
+        std::string path = ".pipeline-state/" + std::to_string(synthetic_issue) + "_stage";
+        std::remove(path.c_str());
+    }
+    
+    std::cout << "✅ T1 synthetic issue API roundtrip passed\n";
 }
 
 // Test: 验证 Developer 阶段状态写入和读取
@@ -70,12 +81,18 @@ void test_99_nonexistent_issue() {
     std::cout << "✅ T nonexistent issue returns -1 passed\n";
 }
 
-// Test: 验证状态文件路径格式
+// Test: 验证 pipeline state API 在有效 issue number 上正常工作
 void test_99_state_file_path() {
-    // 验证 .pipeline-state/99_stage 路径格式
-    int stage = read_stage(99, ".pipeline-state");
-    assert(stage >= 0);
-    std::cout << "✅ State file path .pipeline-state/99_stage is accessible, stage = " << stage << "\n";
+    const int synthetic_issue = 99998;
+    bool write_ok = write_stage(synthetic_issue, 3, ".pipeline-state");
+    assert(write_ok == true);
+    int stage = read_stage(synthetic_issue, ".pipeline-state");
+    assert(stage == 3);
+    
+    std::string path = ".pipeline-state/" + std::to_string(synthetic_issue) + "_stage";
+    std::remove(path.c_str());
+    
+    std::cout << "✅ T6 API correctly writes/reads stage file for synthetic issue\n";
 }
 
 int main() {
