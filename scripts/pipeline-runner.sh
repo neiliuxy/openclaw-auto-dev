@@ -80,6 +80,13 @@ prepare_branch() {
     git -C "$PROJECT_ROOT" fetch origin "$DEFAULT_BRANCH" 2>/dev/null || true
     git -C "$PROJECT_ROOT" checkout "$DEFAULT_BRANCH" 2>/dev/null || true
     git -C "$PROJECT_ROOT" pull origin "$DEFAULT_BRANCH" 2>/dev/null || true
+    
+    # P1.2: Clean up stale working directory if it exists from a previous run
+    if [ -d "$PROJECT_ROOT/$ISSUE_FOLDER" ]; then
+        log "⚠️ 工作目录 $ISSUE_FOLDER 已存在，清理旧内容..."
+        rm -rf "$PROJECT_ROOT/$ISSUE_FOLDER"
+    fi
+    
     if git -C "$PROJECT_ROOT" checkout -b "$branch" 2>/dev/null; then
         log "🌿 分支 $branch 已创建"
     else
@@ -201,19 +208,28 @@ $ISSUE_TITLE
     local pr_url=$(echo "$pr_output" | grep -oE "https://github.com/[^ ]+" || echo "")
     local pr_num=$(echo "$pr_url" | grep -oE "[0-9]+$" || echo "")
     
+    local merge_success=false
     if [ -n "$pr_num" ]; then
         log "📝 PR #$pr_num 已创建: $pr_url"
         if gh pr merge "$pr_num" --squash --repo "$REPO" 2>/dev/null; then
             log "✅ PR #$pr_num 已合并 (squash)"
+            merge_success=true
         elif gh pr merge "$pr_num" --merge --repo "$REPO" 2>/dev/null; then
             log "✅ PR #$pr_num 已合并 (merge)"
+            merge_success=true
         else
             log "⚠️ PR #$pr_num 合并失败"
         fi
     else
         log "⚠️ PR 创建失败: $pr_output"
     fi
-    log "✅ Stage 4 (Reviewer) 完成"
+    
+    if [ "$merge_success" = true ]; then
+        log "✅ Stage 4 (Reviewer) 完成"
+    else
+        log "❌ Stage 4 (Reviewer) 失败 — 合并未成功"
+        exit 1
+    fi
 }
 
 run_pipeline() {
