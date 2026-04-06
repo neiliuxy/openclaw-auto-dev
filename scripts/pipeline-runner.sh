@@ -48,7 +48,13 @@ get_state_file() {
 read_stage() {
     local sf=$(get_state_file "$1")
     if [ -f "$sf" ]; then
-        cat "$sf"
+        # Handle both legacy (plain number) and JSON format
+        local content=$(cat "$sf")
+        if echo "$content" | jq -e . >/dev/null 2>&1; then
+            echo "$content" | jq -r '.stage'
+        else
+            echo "$content"
+        fi
     else
         echo "0"
     fi
