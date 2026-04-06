@@ -9,15 +9,28 @@
 
 using namespace pipeline;
 
-// Test: 验证 Issue #97 的当前状态（Pipeline 已演进，可能 1-4）
+// Test: 验证 pipeline state API 读写能力（使用合成 issue，不依赖遗留状态文件）
 void test_97_initial_stage() {
-    // Pipeline 已演进，当前可能为 Stage 1-4
-    // 方案A: 灵活验证 - 检查有效的 pipeline 阶段
-    int stage = read_stage(97, ".pipeline-state");
-    assert(stage >= 1 && stage <= 4);  // 验证是有效的 pipeline 阶段
-    std::string desc = stage_to_description(stage);
-    assert(desc != "Unknown");  // 验证描述有效
-    std::cout << "✅ T1 Issue #97 current stage = " << stage << " (" << desc << ") passed\n";
+    // 使用合成 issue 99997 测试 API 读写能力，不依赖 .pipeline-state/97_stage
+    const int synthetic_issue = 99997;
+    int original = read_stage(synthetic_issue, ".pipeline-state");
+    
+    // 写入 Stage 1
+    bool write_ok = write_stage(synthetic_issue, 1, ".pipeline-state");
+    assert(write_ok == true);
+    int stage = read_stage(synthetic_issue, ".pipeline-state");
+    assert(stage == 1);
+    
+    // 恢复
+    if (original >= 0) {
+        write_stage(synthetic_issue, original, ".pipeline-state");
+    } else {
+        // 清理测试文件
+        std::string path = ".pipeline-state/" + std::to_string(synthetic_issue) + "_stage";
+        std::remove(path.c_str());
+    }
+    
+    std::cout << "✅ T1 synthetic issue API roundtrip passed\n";
 }
 
 // Test: 验证 write_stage 和 read_stage 的完整性

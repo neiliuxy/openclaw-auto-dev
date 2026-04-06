@@ -62,7 +62,11 @@ read_stage() {
 
 write_stage() {
     mkdir -p "$STATE_DIR"
-    echo "$2" > "$(get_state_file "$1")"
+    local sf=$(get_state_file "$1")
+    local timestamp=$(date -Iseconds 2>/dev/null || date '+%Y-%m-%dT%H:%M:%S+08:00')
+    # Write JSON format matching pipeline_state.cpp
+    printf '{\n  "issue": %d,\n  "stage": %d,\n  "updated_at": "%s",\n  "error": null\n}\n' \
+        "$1" "$2" "$timestamp" > "$sf"
     log "📊 状态: stage=$2"
 }
 
