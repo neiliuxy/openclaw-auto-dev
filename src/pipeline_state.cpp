@@ -18,6 +18,21 @@ static std::string get_current_timestamp() {
     return oss.str();
 }
 
+static size_t find_json_string_end(const std::string& content, size_t start_quote) {
+    // Find the closing quote of a JSON string, handling escaped characters
+    size_t i = start_quote + 1;
+    while (i < content.size()) {
+        if (content[i] == '\\') {
+            i += 2; // skip escaped char
+        } else if (content[i] == '"') {
+            return i; // closing quote found
+        } else {
+            i++;
+        }
+    }
+    return std::string::npos; // no closing quote
+}
+
 static std::string quote_string(const std::string& s) {
     std::ostringstream oss;
     oss << "\"";
@@ -63,7 +78,14 @@ int read_stage(int issue_number, const std::string& state_dir) {
             }
         }
         // JSON 解析失败，尝试从内容中提取纯整数（旧格式兼容）
-        // 查找第一个有效的整数（可能是 {N} 格式或其他简单格式）
+        // 仅当内容看起来像旧格式（以数字开头/结尾）时才使用fallback
+        // 如果已知是 JSON 但缺少 stage 字段，返回 -1
+        if (content.find("\"stage\"") == std::string::npos && 
+            content.find("\"issue\"") != std::string::npos) {
+            // JSON with issue but no stage -> malformed, return -1
+            return -1;
+        }
+        // 旧格式：查找第一个有效的纯整数
         size_t i = 0;
         while (i < content.size() && !isdigit(content[i]) && content[i] != '-') i++;
         if (i < content.size()) {
@@ -196,7 +218,7 @@ PipelineState read_state(int issue_number, const std::string& state_dir) {
         if (updated_pos != std::string::npos) {
             size_t colon = content.find(':', updated_pos);
             size_t start_quote = content.find('"', colon);
-            size_t end_quote = content.find('"', start_quote + 1);
+            size_t end_quote = find_json_string_end(content, start_quote);
             if (start_quote != std::string::npos && end_quote != std::string::npos) {
                 state.updated_at = content.substr(start_quote + 1, end_quote - start_quote - 1);
             }
@@ -212,7 +234,7 @@ PipelineState read_state(int issue_number, const std::string& state_dir) {
                 state.error = "null";
             } else {
                 size_t start_quote = content.find('"', start);
-                size_t end_quote = content.find('"', start_quote + 1);
+                size_t end_quote = find_json_string_end(content, start_quote);
                 if (start_quote != std::string::npos && end_quote != std::string::npos) {
                     state.error = content.substr(start_quote + 1, end_quote - start_quote - 1);
                 }
