@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-04-06T03:00:01+08:00",
+  "timestamp": "2026-04-08T23:30:02+08:00",
   "status": "idle",
   "message": "无新 Issue 需要处理",
   "issue_number": null,
   "issue_title": null,
-  "scan_log": "/home/admin/.openclaw/workspace/openclaw-auto-dev/logs/scan-2026-04-06.log"
+  "scan_log": "/home/admin/.openclaw/workspace/openclaw-auto-dev/logs/scan-2026-04-08.log"
 }

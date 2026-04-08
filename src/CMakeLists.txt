@@ -35,6 +35,7 @@ add_test(NAME spawn_order_test COMMAND spawn_order_test)
 # Issue #97: pipeline state validation test executable
 add_executable(pipeline_97_test ${CMAKE_CURRENT_LIST_DIR}/pipeline_97_test.cpp ${CMAKE_CURRENT_LIST_DIR}/pipeline_state.cpp)
 target_include_directories(pipeline_97_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+target_compile_definitions(pipeline_97_test PRIVATE STATE_DIR="${CMAKE_SOURCE_DIR}/.pipeline-state")
 add_test(NAME pipeline_97_test COMMAND pipeline_97_test)
 set_tests_properties(pipeline_97_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
@@ -63,3 +64,10 @@ add_executable(algorithm_test ${CMAKE_CURRENT_LIST_DIR}/algorithm_test.cpp
     ${CMAKE_CURRENT_LIST_DIR}/string_utils.cpp)
 target_include_directories(algorithm_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 add_test(NAME algorithm_test COMMAND algorithm_test)
+
+# Issue #113: pipeline_state coverage test executable
+add_executable(pipeline_state_test ${CMAKE_CURRENT_LIST_DIR}/pipeline_state_test.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/pipeline_state.cpp)
+target_include_directories(pipeline_state_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+add_test(NAME pipeline_state_test COMMAND pipeline_state_test)
+set_tests_properties(pipeline_state_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

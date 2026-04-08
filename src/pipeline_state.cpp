@@ -18,6 +18,21 @@ static std::string get_current_timestamp() {
     return oss.str();
 }
 
+static size_t find_json_string_end(const std::string& content, size_t start_quote) {
+    // Find the closing quote of a JSON string, handling escaped characters
+    size_t i = start_quote + 1;
+    while (i < content.size()) {
+        if (content[i] == '\\') {
+            i += 2; // skip escaped char
+        } else if (content[i] == '"') {
+            return i; // closing quote found
+        } else {
+            i++;
+        }
+    }
+    return std::string::npos; // no closing quote
+}
+
 static std::string quote_string(const std::string& s) {
     std::ostringstream oss;
     oss << "\"";
@@ -63,7 +78,14 @@ int read_stage(int issue_number, const std::string& state_dir) {
             }
         }
         // JSON 解析失败，尝试从内容中提取纯整数（旧格式兼容）
-        // 查找第一个有效的整数（可能是 {N} 格式或其他简单格式）
+        // 仅当内容看起来像旧格式（以数字开头/结尾）时才使用fallback
+        // 如果已知是 JSON 但缺少 stage 字段，返回 -1
+        if (content.find("\"stage\"") == std::string::npos && 
+            content.find("\"issue\"") != std::string::npos) {
+            // JSON with issue but no stage -> malformed, return -1
+            return -1;
+        }
+        // 旧格式：查找第一个有效的纯整数
         size_t i = 0;
         while (i < content.size() && !isdigit(content[i]) && content[i] != '-') i++;
         if (i < content.size()) {
@@ -80,11 +102,38 @@ int read_stage(int issue_number, const std::string& state_dir) {
         return -1;
     }
     
-    // 旧格式：纯整数
+    // 旧格式：纯整数（也可能是 {"issue_num":...,"stage":...} 但非标准格式）
+    // 先尝试直接读取整数
     int stage = -1;
     fin >> stage;
+    if (!fin.fail()) {
+        fin.close();
+        return stage;
+    }
+    
+    // 读取失败，重新尝试解析为 JSON（边界情况）
+    fin.clear();
+    fin.seekg(0, std::ios::beg);
+    std::string content((std::istreambuf_iterator<char>(fin)),
+                          std::istreambuf_iterator<char>());
     fin.close();
-    return stage;
+    
+    // 尝试在整个内容中查找 stage 值
+    size_t stage_pos = content.find("\"stage\"");
+    if (stage_pos != std::string::npos) {
+        size_t colon_pos = content.find(':', stage_pos);
+        if (colon_pos != std::string::npos) {
+            size_t start = colon_pos + 1;
+            while (start < content.size() && (content[start] == ' ' || content[start] == '\t' || content[start] == '\n' || content[start] == '\r' || content[start] == '"')) start++;
+            size_t end = start;
+            while (end < content.size() && (isdigit(content[end]) || content[end] == '-')) end++;
+            if (end > start) {
+                return std::stoi(content.substr(start, end - start));
+            }
+        }
+    }
+    
+    return -1;
 }
 
 bool write_stage(int issue_number, int stage, const std::string& state_dir) {
@@ -169,7 +218,7 @@ PipelineState read_state(int issue_number, const std::string& state_dir) {
         if (updated_pos != std::string::npos) {
             size_t colon = content.find(':', updated_pos);
             size_t start_quote = content.find('"', colon);
-            size_t end_quote = content.find('"', start_quote + 1);
+            size_t end_quote = find_json_string_end(content, start_quote);
             if (start_quote != std::string::npos && end_quote != std::string::npos) {
                 state.updated_at = content.substr(start_quote + 1, end_quote - start_quote - 1);
             }
@@ -185,7 +234,7 @@ PipelineState read_state(int issue_number, const std::string& state_dir) {
                 state.error = "null";
             } else {
                 size_t start_quote = content.find('"', start);
-                size_t end_quote = content.find('"', start_quote + 1);
+                size_t end_quote = find_json_string_end(content, start_quote);
                 if (start_quote != std::string::npos && end_quote != std::string::npos) {
                     state.error = content.substr(start_quote + 1, end_quote - start_quote - 1);
                 }
