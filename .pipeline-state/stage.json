@@ -1,1 +1,15 @@
-{"stage": 1, "status": "completed", "pr_url": "https://github.com/neiliuxy/openclaw-auto-dev/pull/136", "updated_at": "2026-04-09T10:02:31+0800"}
+{
+  "stage": 2,
+  "status": "completed",
+  "pr_url": "https://github.com/neiliuxy/openclaw-auto-dev/pull/136",
+  "test_result": "https://github.com/neiliuxy/openclaw-auto-dev/pull/136",
+  "updated_at": "2026-04-09T10:10:00+0800",
+  "test_summary": {
+    "cmake_build": "passed",
+    "cmake_tests": "9/9 passed",
+    "shell_script_syntax": "passed",
+    "cleanup_script_dryrun": "passed (6 issues detected)",
+    "ci_workflows": "valid",
+    "build_artifact_check": "pre-existing artifacts in src/ (not from this PR)"
+  }
+}
