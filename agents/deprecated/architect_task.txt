@@ -1,3 +1,11 @@
+# Deprecated: Architect Task Placeholder
+
+> **This file is deprecated.**
+> Agent task assignment is now handled dynamically by the OpenClaw Pipeline skill.
+> See: `~/.openclaw/workspace/skills/openclaw-pipeline/`
+
+## Historical Content
+
 你是 Pipeline Architect。请分析 openclaw-auto-dev 项目并规划开发工作。
 
 **当前 Issue (#64)：skill-test: 二叉树遍历**

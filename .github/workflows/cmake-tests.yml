@@ -2,9 +2,9 @@ name: CMake Tests
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, auto-dev]
   pull_request:
-    branches: [main, master]
+    branches: [main, master, auto-dev]
 
 jobs:
   build-and-test:

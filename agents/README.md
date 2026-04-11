@@ -1,18 +1,25 @@
 # agents/ — Deprecated
 
-> **⚠️ This directory is deprecated.**  
-> Agent task assignment is now handled dynamically by the OpenClaw Pipeline skill (`openclaw-pipeline/`).  
+> **⚠️ This directory is deprecated.**
+> Agent task assignment is now handled dynamically by the OpenClaw Pipeline skill (`openclaw-pipeline/`).
 > Do not rely on files in this directory for task routing.
 
 ## Historical Context
 
-This directory previously served as a static task assignment mechanism:
-- `agents/developer/task.txt` — Developer agent task placeholder
-- `agents/tester/` — Tester agent workspace (placeholder)
-
+This directory previously served as a static task assignment mechanism.
 As of Pipeline v2, task assignment is fully dynamic via:
 - `~/.openclaw/workspace/skills/openclaw-pipeline/pipeline-runner.sh`
 - `.pipeline-state/<issue>_stage` files for state tracking
+
+## Directory Structure
+
+```
+agents/
+├── README.md              # This file
+└── deprecated/
+    ├── architect_task.txt  # Historical Architect task placeholder
+    └── task.txt            # Historical Developer task placeholder
+```
 
 ## What To Do
 
