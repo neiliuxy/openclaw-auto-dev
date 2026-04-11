@@ -144,6 +144,54 @@ update_labels() {
     }
 }
 
+# Add openclaw-error label on failure
+add_error_label() {
+    local issue_num="$1"
+    
+    if ! has_gh; then
+        log_warn "gh CLI not available, skipping error label"
+        return 0
+    fi
+    
+    gh api "repos/$REPO_NAME/issues/$issue_num/labels" --silent -F "labels[]=openclaw-error" 2>/dev/null || {
+        log_warn "Failed to add openclaw-error label"
+    }
+}
+
+# Send Feishu notification for stage completion
+send_stage_notification() {
+    local issue_num="$1"
+    local stage_name="$2"
+    local status="$3"
+    local error_msg="${4:-}"
+    
+    local notify_script="$SCRIPT_DIR/notify-feishu.sh"
+    if [[ ! -f "$notify_script" ]]; then
+        log_warn "notify-feishu.sh not found, skipping notification"
+        return 0
+    fi
+    
+    # Set environment variables for the notification script
+    export ISSUE_NUMBER="$issue_num"
+    export PIPELINE_PROJECT_ROOT="$REPO_DIR"
+    
+    if [[ "$status" == "failed" && -n "$error_msg" ]]; then
+        # Send failure notification
+        "$notify_script" \
+            --project "$REPO_DIR" \
+            --stage "$stage_name" \
+            --status "failed" \
+            2>/dev/null || true
+    else
+        # Send completion notification
+        "$notify_script" \
+            --project "$REPO_DIR" \
+            --stage "$stage_name" \
+            --status "completed" \
+            2>/dev/null || true
+    fi
+}
+
 #-------------------------------------------------------------------------------
 # Stage 1: Architect — Create SPEC.md
 #-------------------------------------------------------------------------------
@@ -151,6 +199,9 @@ run_architect() {
     local issue_num="$1"
     
     log_info "=== Stage 1: Architect ==="
+    
+    # Track if stage completed successfully
+    local stage_error=""
     
     # Get issue info
     local issue_title issue_body
@@ -168,7 +219,7 @@ run_architect() {
     [[ -z "$slug" ]] && slug="issue-$issue_num"
     
     local issue_dir="$OPENCLAW_DIR/${issue_num}_${slug}"
-    mkdir -p "$issue_dir"
+    mkdir -p "$issue_dir" || stage_error="Failed to create issue directory"
     
     local spec_file="$issue_dir/SPEC.md"
     
@@ -176,11 +227,13 @@ run_architect() {
     if [[ -f "$spec_file" ]]; then
         log_info "SPEC.md already exists at $spec_file, skipping Architect"
         echo "$slug" > /tmp/pipeline_slug_$issue_num
+        send_stage_notification "$issue_num" "architect" "completed"
         return 0
     fi
     
-    # Create SPEC.md
-    cat > "$spec_file" << EOF
+    if [[ -z "$stage_error" ]]; then
+        # Create SPEC.md
+        cat > "$spec_file" << EOF
 # Issue #$issue_num — $issue_title
 
 ## Issue Information
@@ -210,15 +263,15 @@ _Edit this section to add the technical specification for this issue._
 - [ ] 
 
 EOF
-    
-    log_success "SPEC.md created at $spec_file"
+        log_success "SPEC.md created at $spec_file"
+    fi
     
     # Git commit and push
     cd "$REPO_DIR"
     if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
-        git add "$issue_dir/SPEC.md"
-        git commit -m "feat(#$issue_num): Add SPEC.md for $slug" --allow-empty 2>/dev/null || true
-        git push origin "$(git rev-parse --abbrev-ref HEAD)" 2>/dev/null || true
+        git add "$issue_dir/SPEC.md" 2>/dev/null || stage_error="Failed to git add SPEC.md"
+        git commit -m "feat(#$issue_num): Add SPEC.md for $slug" --allow-empty 2>/dev/null || stage_error="Failed to commit SPEC.md"
+        git push origin "$(git rev-parse --abbrev-ref HEAD)" 2>/dev/null || stage_error="Failed to push SPEC.md"
     fi
     
     # Save slug for later stages
@@ -227,7 +280,16 @@ EOF
     # Update labels: openclaw-waiting → openclaw-architecting
     update_labels "$issue_num" "openclaw-waiting" "openclaw-architecting"
     
+    if [[ -n "$stage_error" ]]; then
+        log_error "Architect stage failed: $stage_error"
+        write_state "$issue_num" "1" "$stage_error"
+        add_error_label "$issue_num"
+        send_stage_notification "$issue_num" "architect" "failed" "$stage_error"
+        return 1
+    fi
+    
     write_state "$issue_num" "1"
+    send_stage_notification "$issue_num" "architect" "completed"
     log_success "Architect stage complete"
 }
 
@@ -238,6 +300,9 @@ run_developer() {
     local issue_num="$1"
     
     log_info "=== Stage 2: Developer ==="
+    
+    # Track if stage completed successfully
+    local stage_error=""
     
     # Get slug from previous stage (or issue title as fallback)
     local slug
@@ -252,11 +317,12 @@ run_developer() {
     fi
     
     local src_file="$SRC_DIR/${slug}.cpp"
-    mkdir -p "$(dirname "$src_file")"
+    mkdir -p "$(dirname "$src_file")" || stage_error="Failed to create src directory"
     
     # Check if code file already exists (don't overwrite on resume)
     if [[ -f "$src_file" ]]; then
         log_info "Code file $src_file already exists, skipping Developer"
+        send_stage_notification "$issue_num" "developer" "completed"
         return 0
     fi
     
@@ -265,8 +331,9 @@ run_developer() {
     local spec_file="$OPENCLAW_DIR/${issue_num}_${slug}/SPEC.md"
     [[ -f "$spec_file" ]] && spec_content=$(cat "$spec_file")
     
-    # Create code file
-    cat > "$src_file" << EOF
+    if [[ -z "$stage_error" ]]; then
+        # Create code file
+        cat > "$src_file" << EOF
 // Issue #$issue_num: $slug
 // Auto-generated by pipeline-runner.sh (Developer stage)
 // 
@@ -283,21 +350,30 @@ int main() {
 }
 
 EOF
-    
-    log_success "Code file created at $src_file"
+        log_success "Code file created at $src_file"
+    fi
     
     # Git commit and push
     cd "$REPO_DIR"
     if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
-        git add "$src_file"
-        git commit -m "feat(#$issue_num): Add $slug.cpp implementation" --allow-empty 2>/dev/null || true
-        git push origin "$(git rev-parse --abbrev-ref HEAD)" 2>/dev/null || true
+        git add "$src_file" 2>/dev/null || stage_error="Failed to git add $src_file"
+        git commit -m "feat(#$issue_num): Add $slug.cpp implementation" --allow-empty 2>/dev/null || stage_error="Failed to commit $src_file"
+        git push origin "$(git rev-parse --abbrev-ref HEAD)" 2>/dev/null || stage_error="Failed to push $src_file"
     fi
     
     # Update labels: openclaw-architecting → openclaw-developing
     update_labels "$issue_num" "openclaw-architecting" "openclaw-developing"
     
+    if [[ -n "$stage_error" ]]; then
+        log_error "Developer stage failed: $stage_error"
+        write_state "$issue_num" "2" "$stage_error"
+        add_error_label "$issue_num"
+        send_stage_notification "$issue_num" "developer" "failed" "$stage_error"
+        return 1
+    fi
+    
     write_state "$issue_num" "2"
+    send_stage_notification "$issue_num" "developer" "completed"
     log_success "Developer stage complete"
 }
 
@@ -309,6 +385,9 @@ run_tester() {
     
     log_info "=== Stage 3: Tester ==="
     
+    # Track if stage completed successfully
+    local stage_error=""
+    
     # Get slug
     local slug
     if [[ -f "/tmp/pipeline_slug_$issue_num" ]]; then
@@ -316,14 +395,14 @@ run_tester() {
     else
         local issue_title
         issue_title=$(gh issue view "$issue_num" --repo "$REPO_NAME" --json title -q '.title' 2>/dev/null || echo "issue-$issue_num")
-        slug=$(echo "$issue_title" | tr '[:upper:]' '[:lower]' | sed 's/[^a-z0-9]+/-/g' | sed 's/^-//;s/-$//' | cut -c1-50)
+        slug=$(echo "$issue_title" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]+/-/g' | sed 's/^-//;s/-$//' | cut -c1-50)
         [[ -z "$slug" ]] && slug="issue-$issue_num"
     fi
     
     local issue_dir="$OPENCLAW_DIR/${issue_num}_${slug}"
     local src_file="$SRC_DIR/${slug}.cpp"
     local report_file="$issue_dir/TEST_REPORT.md"
-    mkdir -p "$issue_dir"
+    mkdir -p "$issue_dir" || stage_error="Failed to create issue directory"
     
     # Build verification
     local build_status="PASS"
@@ -335,13 +414,15 @@ run_tester() {
         build_output=$(mkdir -p build && cd build && cmake .. >/dev/null 2>&1 && make >/dev/null 2>&1 && echo "BUILD_SUCCESS" || echo "BUILD_FAILED")
         if [[ "$build_output" != "BUILD_SUCCESS" ]]; then
             build_status="FAIL"
+            stage_error="Build failed: $build_output"
         fi
     else
         build_status="SKIP (no source file)"
     fi
     
-    # Create TEST_REPORT.md
-    cat > "$report_file" << EOF
+    if [[ -z "$stage_error" ]]; then
+        # Create TEST_REPORT.md
+        cat > "$report_file" << EOF
 # Test Report — Issue #$issue_num
 
 - **Issue**: $issue_num
@@ -367,21 +448,30 @@ $build_output
 **Result**: $build_status
 
 EOF
-    
-    log_success "TEST_REPORT.md created at $report_file"
+        log_success "TEST_REPORT.md created at $report_file"
+    fi
     
     # Git commit and push
     cd "$REPO_DIR"
     if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
-        git add "$report_file"
-        git commit -m "test(#$issue_num): Add test report for $slug" --allow-empty 2>/dev/null || true
-        git push origin "$(git rev-parse --abbrev-ref HEAD)" 2>/dev/null || true
+        git add "$report_file" 2>/dev/null || stage_error="Failed to git add TEST_REPORT.md"
+        git commit -m "test(#$issue_num): Add test report for $slug" --allow-empty 2>/dev/null || stage_error="Failed to commit TEST_REPORT.md"
+        git push origin "$(git rev-parse --abbrev-ref HEAD)" 2>/dev/null || stage_error="Failed to push TEST_REPORT.md"
     fi
     
     # Update labels: openclaw-developing → openclaw-testing
     update_labels "$issue_num" "openclaw-developing" "openclaw-testing"
     
+    if [[ -n "$stage_error" ]]; then
+        log_error "Tester stage failed: $stage_error"
+        write_state "$issue_num" "3" "$stage_error"
+        add_error_label "$issue_num"
+        send_stage_notification "$issue_num" "tester" "failed" "$stage_error"
+        return 1
+    fi
+    
     write_state "$issue_num" "3"
+    send_stage_notification "$issue_num" "tester" "completed"
     log_success "Tester stage complete"
 }
 
@@ -392,6 +482,9 @@ run_reviewer() {
     local issue_num="$1"
     
     log_info "=== Stage 4: Reviewer ==="
+    
+    # Track if stage completed successfully
+    local stage_error=""
     
     # Get slug
     local slug
@@ -413,6 +506,7 @@ run_reviewer() {
         log_warn "gh CLI not available, skipping PR creation"
         write_state "$issue_num" "4"
         clear_state "$issue_num"
+        send_stage_notification "$issue_num" "reviewer" "completed"
         log_success "Reviewer stage complete (no gh)"
         return 0
     fi
@@ -431,19 +525,18 @@ run_reviewer() {
     else
         # Create branch if it doesn't exist
         if ! git rev-parse --verify "$branch_name" &>/dev/null; then
-            git checkout -b "$branch_name" 2>/dev/null || true
-            git push origin "$branch_name" 2>/dev/null || true
+            git checkout -b "$branch_name" 2>/dev/null || stage_error="Failed to create branch $branch_name"
+            git push origin "$branch_name" 2>/dev/null || stage_error="Failed to push branch $branch_name"
         fi
         
-        # Create PR
-        local pr_url
-        pr_url=$(gh pr create --repo "$REPO_NAME" --base "$DEFAULT_BRANCH" --head "$branch_name" --title "Fix #$issue_num: $slug" --body "Closes #$issue_num" 2>/dev/null) || {
-            log_warn "Failed to create PR"
-            write_state "$issue_num" "4"
-            clear_state "$issue_num"
-            return 0
-        }
-        log_success "PR created: $pr_url"
+        if [[ -z "$stage_error" ]]; then
+            # Create PR
+            local pr_url
+            pr_url=$(gh pr create --repo "$REPO_NAME" --base "$DEFAULT_BRANCH" --head "$branch_name" --title "Fix #$issue_num: $slug" --body "Closes #$issue_num" 2>/dev/null) || {
+                stage_error="Failed to create PR"
+            }
+            [[ -n "$pr_url" ]] && log_success "PR created: $pr_url"
+        fi
     fi
     
     # Try to merge PR (squash first, then merge)
@@ -455,14 +548,23 @@ run_reviewer() {
         gh pr merge "$pr_num" --repo "$REPO_NAME" --squash --delete-branch 2>/dev/null || {
             # Fall back to regular merge
             gh pr merge "$pr_num" --repo "$REPO_NAME" --merge --delete-branch 2>/dev/null || {
-                log_warn "Failed to merge PR"
+                stage_error="Failed to merge PR #$pr_num"
             }
         }
-        log_success "PR #$pr_num merged"
+        [[ -z "$stage_error" ]] && log_success "PR #$pr_num merged"
+    fi
+    
+    if [[ -n "$stage_error" ]]; then
+        log_error "Reviewer stage failed: $stage_error"
+        write_state "$issue_num" "4" "$stage_error"
+        add_error_label "$issue_num"
+        send_stage_notification "$issue_num" "reviewer" "failed" "$stage_error"
+        return 1
     fi
     
     write_state "$issue_num" "4"
     clear_state "$issue_num"
+    send_stage_notification "$issue_num" "reviewer" "completed"
     log_success "Reviewer stage complete"
 }
 

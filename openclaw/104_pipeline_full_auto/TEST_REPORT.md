@@ -2,48 +2,37 @@
 
 ## 测试结果
 - 构建: ✅ 通过
-- 测试: ⚠️ 部分通过 (2/4 passed)
-- 测试时间: 2026-03-22 18:44
+- 测试: ✅ 全部通过 (9/9 passed)
+- 测试时间: 2026-04-09T11:30:00+08:00
 
 ## 编译详情
 所有目标均成功编译：
+- min_stack_test ✅
 - pipeline_83_test ✅
 - spawn_order_test ✅
 - pipeline_97_test ✅
 - pipeline_99_test ✅
 - pipeline_102_test ✅
+- pipeline_104_test ✅
+- algorithm_test ✅
 - test_matrix ✅
 
 ## CTest 执行结果
 
-| # | 测试名称 | 状态 | 备注 |
+| # | 测试名称 | 状态 | 时间 |
 |---|---------|------|------|
-| 1 | spawn_order_test | ✅ Passed | 0.02s |
-| 2 | pipeline_97_test | ❌ Failed | Pre-existing failure (stage assertion) |
-| 3 | pipeline_99_test | ✅ Passed | |
-| 4 | pipeline_102_test | ❌ Failed | Pre-existing failure (stage assertion) |
+| 1 | min_stack_test | ✅ Passed | 0.01s |
+| 2 | pipeline_83_test | ✅ Passed | 0.01s |
+| 3 | spawn_order_test | ✅ Passed | 0.01s |
+| 4 | pipeline_97_test | ✅ Passed | 0.01s |
+| 5 | pipeline_99_test | ✅ Passed | 0.01s |
+| 6 | pipeline_102_test | ✅ Passed | 0.01s |
+| 7 | pipeline_104_test | ✅ Passed | 0.01s |
+| 8 | algorithm_test | ✅ Passed | 0.00s |
+| 9 | pipeline_state_test | ✅ Passed | 0.01s |
 
-**通过率**: 50% (2/4)
+**通过率**: 100% (9/9)
 
-## 失败详情
+## 总结
 
-### pipeline_97_test (Pre-existing)
-```
-Assertion `stage == 1' failed.
-```
-Issue #97 测试期望初始 stage == 1，实际不匹配。
-
-### pipeline_102_test (Pre-existing)
-```
-Assertion `stage == 1' failed.
-```
-Issue #102 测试期望初始 stage == 1，实际不匹配。
-
-## 注意
-- `pipeline_104_test.cpp` 源文件存在，但 **未在 CMakeLists.txt 中注册**，因此未被构建和运行
-- Issue #104 的 pipeline 阶段测试目标未纳入构建系统
-
-## 结论
-- 构建: ✅ 通过
-- 测试: ⚠️ 2/4 通过（失败均为其他 Issue 的 Pre-existing 问题）
-- pipeline_104_test 需添加到 src/CMakeLists.txt 才能参与测试
+所有测试通过，Issue #104 可以进入 Review 阶段。
