@@ -1,0 +1,103 @@
+# Developer Stage 1 — State File
+# Generated: 2026-04-11T08:05:00+0800
+# Pipeline: openclaw-auto-dev
+# Branch: pipeline/stage1-developer
+
+## Stage 1 Completion Summary
+
+### Git State
+- Current HEAD: 4ec8f71 — "Stage 1 Developer: Issue cleanup system and stale PR handler"
+- Branch: pipeline/stage1-developer (pushed to origin)
+- Previous branch: pipeline/stage0-architect (completed)
+
+### Changes Implemented in Stage 1
+
+#### NEW FILES CREATED:
+1. **scripts/close-stale-prs.sh** — Close stale PRs handler
+   - Supports --dry-run and --execute modes
+   - Handles PRs >30 days inactive (configurable via --days)
+   - Closes specific PRs via --pr flag
+   - Implements STALE_PR detection and close action
+
+2. **scripts/cleanup-issue-status.sh** — Already existed from previous work
+   - Implements detection rules D1-D7
+   - Implements cleanup actions C1-C5
+   - Supports --dry-run and --execute modes
+   - Integrated into the codebase
+
+#### COMMITS:
+- Committed all local changes:
+  - cron-report.md (modified)
+  - scan-result.json (modified)
+  - .pipeline-state/stage_2.json (deleted)
+  - openclaw/64_binary-tree/ (added)
+  - scripts/close-stale-prs.sh (new file)
+
+### Test Suite Results
+- All 9 tests PASSED (100%)
+  - pipeline_104_test, pipeline_state_test, pipeline_102_test
+  - algorithm_test, spawn_order_test, pipeline_97_test
+  - min_stack_test, pipeline_99_test, pipeline_83_test
+
+### Issues Still Requiring Attention
+
+| Issue | Problem | Status |
+|-------|---------|--------|
+| #95 | CLOSED but has openclaw-new label | Fix pending: run cleanup-issue-status.sh --execute |
+| #90 | OPEN but has openclaw-completed label | Fix pending: run cleanup-issue-status.sh --execute |
+| #73 | Conflicting stage labels | Fix pending: run cleanup-issue-status.sh --execute |
+| #11 | Stale PR (>30 days) | Fix pending: run close-stale-prs.sh --execute |
+| #125 | Stale PR | Fix pending: run close-stale-prs.sh --execute |
+| #132 | Stale PR | Fix pending: run close-stale-prs.sh --execute |
+
+### Remaining Tasks for Next Stages
+
+#### Developer Stage 1 (if re-entered):
+- [ ] Run `scripts/cleanup-issue-status.sh --execute` to fix issues #95, #90, #73
+- [ ] Run `scripts/close-stale-prs.sh --execute` to close PRs #11, #125, #132
+- [ ] Integrate cleanup-issue-status.sh into heartbeat-check.sh
+
+#### Tester Stage 2:
+- [ ] Validate cleanup scripts work correctly
+- [ ] Test dry-run mode shows correct issues
+- [ ] Test execute mode properly fixes issues
+
+#### Reviewer Stage 3:
+- [ ] Verify all issues are resolved
+- [ ] Review and merge pipeline/stage1-developer to main
+
+---
+
+## Files Created/Modified This Stage
+
+| File | Action |
+|------|--------|
+| scripts/close-stale-prs.sh | CREATED (10926 bytes, executable) |
+| .pipeline-state/_next_stage | CREATED |
+| .pipeline-state/stage_2.json | DELETED |
+| cron-report.md | MODIFIED (committed) |
+| scan-result.json | MODIFIED (committed) |
+| openclaw/64_binary-tree/ | ADDED (committed) |
+
+---
+
+## Integration Points for Next Iteration
+
+### heartbeat-check.sh Integration (pending):
+```bash
+# In heartbeat-check.sh, add after scan:
+if [[ -f "$SCRIPT_DIR/cleanup-issue-status.sh" ]]; then
+    bash "$SCRIPT_DIR/cleanup-issue-status.sh" --dry-run --json >> "$LOG_DIR/cleanup-report.json" 2>&1 || true
+fi
+```
+
+### close-stale-prs.sh Integration (pending):
+```bash
+# Can be run manually or via cron:
+# bash scripts/close-stale-prs.sh --dry-run  # Check
+# bash scripts/close-stale-prs.sh --execute  # Execute
+```
+
+---
+
+*Developer Stage 1 complete. Pipeline cleanup system implemented. Ready for Tester Stage 2.*
