@@ -85,3 +85,15 @@ cat > "$PROJECT_ROOT/scan-result.json" <<EOF
 EOF
 
 log_scan "INFO" "扫描结果已保存到 scan-result.json"
+
+# 运行 Issue 状态清理（修复 labels 错乱等异常状态）
+if [[ -f "$SCRIPT_DIR/cleanup-issue-status.sh" ]]; then
+    log_scan "INFO" "运行 cleanup-issue-status.sh 进行状态检查..."
+    cleanup_output=$(bash "$SCRIPT_DIR/cleanup-issue-status.sh" --dry-run 2>&1 || true)
+    if echo "$cleanup_output" | grep -q "Found.*issue.*abnormal"; then
+        log_scan "WARN" "发现异常 Issue 状态，需要手动处理"
+        echo "$cleanup_output" >> "$LOG_FILE"
+    elif echo "$cleanup_output" | grep -q "No abnormal"; then
+        log_scan "INFO" "Issue 状态检查正常"
+    fi
+fi
