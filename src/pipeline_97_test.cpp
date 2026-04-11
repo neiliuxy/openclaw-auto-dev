@@ -9,12 +9,28 @@
 
 using namespace pipeline;
 
-// Test: 验证 Issue #97 的初始状态（Stage 1 - Architect 完成）
+// Test: 验证 pipeline state API 读写能力（使用合成 issue，不依赖遗留状态文件）
 void test_97_initial_stage() {
-    // Architect 阶段完成后，状态应为 1
-    int stage = read_stage(97, ".pipeline-state");
+    // 使用合成 issue 99997 测试 API 读写能力，不依赖 .pipeline-state/97_stage
+    const int synthetic_issue = 99997;
+    int original = read_stage(synthetic_issue, ".pipeline-state");
+    
+    // 写入 Stage 1
+    bool write_ok = write_stage(synthetic_issue, 1, ".pipeline-state");
+    assert(write_ok == true);
+    int stage = read_stage(synthetic_issue, ".pipeline-state");
     assert(stage == 1);
-    std::cout << "✅ T1 Issue #97 initial stage = 1 (ArchitectDone) passed\n";
+    
+    // 恢复
+    if (original >= 0) {
+        write_stage(synthetic_issue, original, ".pipeline-state");
+    } else {
+        // 清理测试文件
+        std::string path = ".pipeline-state/" + std::to_string(synthetic_issue) + "_stage";
+        std::remove(path.c_str());
+    }
+    
+    std::cout << "✅ T1 synthetic issue API roundtrip passed\n";
 }
 
 // Test: 验证 write_stage 和 read_stage 的完整性

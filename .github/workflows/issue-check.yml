@@ -21,6 +21,8 @@ jobs:
           # GitHub CLI 在 Ubuntu runner 上预装，验证版本
           gh --version
           jq --version
+          # 验证 gh 认证状态 (GHA 环境使用 github.token 自动认证)
+          gh auth status
 
       - name: Check for processing issues
         env:

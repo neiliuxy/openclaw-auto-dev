@@ -1,0 +1,17 @@
+你是 Pipeline Architect。请分析 openclaw-auto-dev 项目并规划开发工作。
+
+**当前 Issue (#64)：skill-test: 二叉树遍历**
+- 实现 `src/binary_tree.cpp`
+- 包含 TreeNode 结构体和前序遍历函数
+- 验收标准：代码可编译（g++ -std=c++17），递归实现前序遍历
+
+**工作目录：** /home/admin/.openclaw/workspace/openclaw-auto-dev
+
+**任务：**
+1. 分析现有 src/ 目录结构和代码风格
+2. 查看 CMakeLists.txt 了解如何添加新源文件
+3. 制定二进制树遍历的实现计划
+4. 更新 agents/developer/task.txt，为 Developer 提供清晰的实现指南
+5. 完成后在 .pipeline-state/ 中创建 stage_1 文件（状态：waiting）
+
+直接执行，不要询问。完成后输出 DONE。

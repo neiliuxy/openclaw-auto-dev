@@ -1,10 +1,49 @@
-你是 Agent-Developer。请为 Issue #81 实现代码。
+# Developer Task: Binary Tree Preorder Traversal (Issue #64)
 
-**Issue 信息：**
-- 标题：test: 4-session pipeline verification
-- 描述：验证 sessions_spawn 能否在 subagent 内正常工作
+## 目标
+确保 `src/binary_tree.cpp` 包含正确的 `TreeNode` 结构体和递归前序遍历实现，代码可通过 `g++ -std=c++17` 编译。
 
-**任务：**
-请分析 Issue 需求，实现代码文件。把每个文件的完整内容输出为 Markdown code block，格式为：```file: src/文件名```
+## 验收标准
+1. `TreeNode` 结构体存在，包含 `int val`、`TreeNode* left`、`TreeNode* right`、构造函数
+2. `preorder_traversal(TreeNode* root)` 函数存在，递归实现，前序顺序：根 → 左 → 右
+3. 返回 `std::vector<int>`，按遍历顺序存储节点值
+4. 空树返回空 vector
+5. 代码可用 `g++ -std=c++17 src/binary_tree.cpp -o binary_tree_test` 编译
+6. 编译后运行输出正确的前序遍历结果
 
-直接输出代码文件，不要解释。每个文件单独一个 code block。
+## 现有代码状态
+`src/binary_tree.cpp` 已存在，包含：
+- `TreeNode` 结构体（含构造函数）
+- `preorder_traversal()` 递归函数
+- 辅助函数：`create_tree()`、`print_tree_preorder()`、`free_tree()`
+- `main()` 测试程序（5个测试用例）
+
+**请先验证现有代码是否满足所有验收标准。** 如满足，直接报告 PASSED；如有问题，修复后同样验证。
+
+## 代码风格参考
+- 使用 `nullptr` 而非 `NULL`
+- 类/结构体定义用 `class`/`struct` + 构造函数初始化列表
+- 递归函数签名：`std::vector<int> preorder_traversal(TreeNode* root)`
+- 头文件保护、include 顺序、命名风格参考 `src/min_stack.cpp` 和 `src/date_utils.h`
+
+## 编译验证
+```bash
+cd /home/admin/.openclaw/workspace/openclaw-auto-dev
+g++ -std=c++17 src/binary_tree.cpp -o binary_tree_test
+./binary_tree_test
+```
+
+预期输出（5个测试用例）：
+```
+二叉树先序: 1 -> 2 -> 4 -> 5 -> 3
+空树先序:
+
+单节点先序: 1
+左斜树先序: 1 -> 2 -> 3
+完全二叉树先序: 1 -> 2 -> 4 -> 5 -> 3 -> 6 -> 7
+```
+
+## 注意事项
+- 不要修改 `TreeNode` 结构体的现有定义（已有代码依赖它）
+- 如果要添加单元测试风格验证，可参考 `src/min_stack_test.cpp` 的 `#ifndef XXX_TEST` 模式
+- 确保无内存泄漏（`free_tree()` 已提供）
