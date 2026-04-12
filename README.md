@@ -84,6 +84,25 @@ openclaw-auto-dev/
 
 ---
 
+## 🔨 构建与测试 (Build & Test)
+
+项目的主 `CMakeLists.txt` 位于**项目根目录**，子目录 `src/` 和 `tests/` 会自动被包含。
+
+```bash
+# 从项目根目录构建
+cmake -B build
+cmake --build build --parallel
+
+# 运行所有测试
+ctest --test-dir build --output-on-failure
+```
+
+> **注意**: 直接在 `src/` 目录下也可以单独构建 (`cd src && cmake -B build`)，但推荐从根目录构建以包含 `tests/` 目录。
+
+GitHub Actions CI 会在每次 PR 和 main 分支推送时自动执行以上构建和测试步骤。
+
+---
+
 ## 🚀 快速开始
 
 ### 触发 Pipeline
