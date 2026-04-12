@@ -1,3 +1,4 @@
+#define MIN_STACK_TEST
 #include "min_stack.cpp"
 #include <iostream>
 #include <cassert>
