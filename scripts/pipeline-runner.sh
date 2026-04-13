@@ -610,6 +610,18 @@ run_reviewer() {
     clear_state "$issue_num"
     send_stage_notification "$issue_num" "reviewer" "completed"
     log_success "Reviewer stage complete"
+
+    # Step 2: Post-merge branch cleanup — clean up any stray openclaw/issue-* branches
+    # whose PRs have been merged. Complements the inline cleanup above; also handles
+    # edge cases where branches were merged outside this pipeline.
+    if [[ -x "$SCRIPT_DIR/cleanup-merged-branches.sh" ]]; then
+        log_info "Running post-merge branch cleanup..."
+        if "$SCRIPT_DIR/cleanup-merged-branches.sh" --dry-run 2>/dev/null | grep -q "Branches to delete"; then
+            "$SCRIPT_DIR/cleanup-merged-branches.sh" --force 2>/dev/null || true
+        else
+            log_info "No stray merged branches found"
+        fi
+    fi
 }
 
 #-------------------------------------------------------------------------------
