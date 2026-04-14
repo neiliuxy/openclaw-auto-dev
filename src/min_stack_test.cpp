@@ -55,12 +55,68 @@ void test_duplicate_min() {
     std::cout << "test_duplicate_min passed\n";
 }
 
+void test_empty_top_throws() {
+    MinStack ms;
+    bool caught = false;
+    try {
+        ms.top();
+    } catch (const std::runtime_error& e) {
+        caught = true;
+    }
+    assert(caught);
+    std::cout << "test_empty_top_throws passed\n";
+}
+
+void test_empty_getmin_throws() {
+    MinStack ms;
+    bool caught = false;
+    try {
+        ms.getMin();
+    } catch (const std::runtime_error& e) {
+        caught = true;
+    }
+    assert(caught);
+    std::cout << "test_empty_getmin_throws passed\n";
+}
+
+void test_empty_pop_no_throw() {
+    MinStack ms;
+    ms.pop();
+    std::cout << "test_empty_pop_no_throw passed\n";
+}
+
+void test_negative_numbers() {
+    MinStack ms;
+    ms.push(-1);
+    ms.push(-3);
+    ms.pop();
+    assert(ms.getMin() == -1);
+    assert(ms.top() == -1);
+    std::cout << "test_negative_numbers passed\n";
+}
+
+void test_mixed_zero_negative() {
+    MinStack ms;
+    ms.push(0);
+    ms.push(-1);
+    ms.push(0);
+    ms.pop();
+    assert(ms.getMin() == -1);
+    assert(ms.top() == -1);
+    std::cout << "test_mixed_zero_negative passed\n";
+}
+
 int main() {
     test_basic_min();
     test_pop_resets_min();
     test_empty_pop();
     test_decreasing_sequence();
     test_duplicate_min();
+    test_empty_top_throws();
+    test_empty_getmin_throws();
+    test_empty_pop_no_throw();
+    test_negative_numbers();
+    test_mixed_zero_negative();
     std::cout << "All tests passed!\n";
     return 0;
 }
