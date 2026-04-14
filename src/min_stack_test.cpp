@@ -106,6 +106,30 @@ void test_mixed_zero_negative() {
     std::cout << "test_mixed_zero_negative passed\n";
 }
 
+// T4: push(5), push(3), push(7), push(3), getMin -> 3, top -> 3
+void test_decreasing_and_rising() {
+    MinStack ms;
+    ms.push(5);
+    ms.push(3);
+    ms.push(7);
+    ms.push(3);
+    assert(ms.getMin() == 3);
+    assert(ms.top() == 3);
+    std::cout << "test_decreasing_and_rising passed\n";
+}
+
+// T5: push(1), push(2), push(1), pop(), getMin -> 1, top -> 2
+void test_duplicate_min_after_pop() {
+    MinStack ms;
+    ms.push(1);
+    ms.push(2);
+    ms.push(1);
+    ms.pop();
+    assert(ms.getMin() == 1);
+    assert(ms.top() == 2);
+    std::cout << "test_duplicate_min_after_pop passed\n";
+}
+
 int main() {
     test_basic_min();
     test_pop_resets_min();
@@ -117,6 +141,8 @@ int main() {
     test_empty_pop_no_throw();
     test_negative_numbers();
     test_mixed_zero_negative();
+    test_decreasing_and_rising();
+    test_duplicate_min_after_pop();
     std::cout << "All tests passed!\n";
     return 0;
 }
