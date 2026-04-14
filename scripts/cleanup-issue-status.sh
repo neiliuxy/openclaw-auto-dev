@@ -327,17 +327,6 @@ detect_stale_pr_merge_conflict() {
         [[ -z "$pr_num" ]] && continue
         [[ "$updated" < "$cutoff_date" ]] || continue  # Only stale PRs
 
-        # Check if PR has merge conflicts
-        local has_conflict
-        has_conflict=$(gh pr view "$pr_num" --json mergeable --jq '.mergeable' 2>/dev/null || echo "unknown")
-
-        if [[ "$has_conflict" == "false" ]]; then
-            # CONFUSED: mergeable=false means no conflicts (mergeable)
-            # mergeable=conflict means conflicts exist
-            # Let me use the correct check
-            :
-        fi
-
         # Use mergeStateStatus to detect conflicts:
         # "DIRTY" = merge conflicts exist
         # "BLOCKED" = cannot merge (may include conflicts or other blockers)
@@ -474,6 +463,10 @@ run_all_detections() {
     while IFS= read -r line; do
         [[ -n "$line" ]] && all_issues+=("$line")
     done < <(detect_stale_pr_merge_conflict)
+
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && all_issues+=("$line")
+    done < <(detect_closed_with_stale_labels)
     
     printf '%s\n' "${all_issues[@]:-}"
 }
@@ -543,12 +536,28 @@ apply_fixes() {
             D6)
                 fix_issue "$issue_num" "delete-state-file" ""
                 ;;
-            STALE_PR|D8|D9)
+            STALE_PR|D8|D9_PR)
                 # action contains PR number for stale PRs
                 local pr_num
                 pr_num=$(echo "$issue_json" | grep -o '"pr":[0-9]*' | grep -o '[0-9]*' | head -1)
                 if [[ -n "$pr_num" ]]; then
                     fix_issue "$issue_num" "close-pr" "$pr_num"
+                fi
+                ;;
+            D9)
+                # D9 can be either PR (D9_PR with close-pr) or issue (D9 with remove-label)
+                local pr_num
+                pr_num=$(echo "$issue_json" | grep -o '"pr":[0-9]*' | grep -o '[0-9]*' | head -1)
+                if [[ -n "$pr_num" ]]; then
+                    fix_issue "$issue_num" "close-pr" "$pr_num"
+                else
+                    # D9 issue detection: extract the label from problem string
+                    # Format: "problem":"Issue closed but has non-completed label: <label>"
+                    local label
+                    label=$(echo "$issue_json" | grep -o 'non-completed label: [^"]*' | cut -d' ' -f3)
+                    if [[ -n "$label" ]]; then
+                        fix_issue "$issue_num" "remove-label" "$label"
+                    fi
                 fi
                 ;;
         esac
