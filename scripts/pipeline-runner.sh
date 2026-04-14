@@ -103,8 +103,14 @@ EOF
 {"issue":$issue_num,"stage":$stage_val,"updated_at":"$timestamp","error":"$error_val"}
 EOF
     fi
-    
+
     log_info "State updated: stage=$stage_val"
+
+    # Keep pipeline_state.json in sync atomically (Issue #4 fix)
+    local json_status="in_progress"
+    [[ "$error_val" != "null" ]] && json_status="failed"
+    [[ "$stage_val" == "4" ]] && json_status="completed"
+    sync_pipeline_state_json "$issue_num" "$stage_val" "$json_status"
 }
 
 # Clear state file (called after stage 4 completion)
@@ -115,6 +121,34 @@ clear_state() {
         rm -f "$state_file"
         log_info "State file cleared"
     fi
+}
+
+# Sync pipeline_state.json atomically to match the current {issue}_stage file
+# This ensures pipeline_state.json is never out of sync with the source of truth.
+sync_pipeline_state_json() {
+    local issue_num="$1"
+    local stage_val="$2"
+    local status_val="${3:-in_progress}"
+
+    local json_file="$STATE_DIR/pipeline_state.json"
+    local tmp_file="${json_file}.tmp.$$"
+    local timestamp
+    timestamp=$(get_timestamp)
+
+    cat > "$tmp_file" << EOF
+{
+  "stage": $stage_val,
+  "status": "$status_val",
+  "started_at": "$(grep -o '"started_at":"[^"]*"' "$json_file" 2>/dev/null | cut -d'"' -f4 || echo "$timestamp")",
+  "completed_at": "$timestamp",
+  "repo": "$REPO_NAME",
+  "branch": "openclaw/issue-$issue_num",
+  "issue": $issue_num,
+  "architect_output": ".pipeline-state/${issue_num}_architect_output.md"
+}
+EOF
+    mv "$tmp_file" "$json_file"
+    log_info "pipeline_state.json synced: stage=$stage_val status=$status_val"
 }
 
 # Check if gh CLI is available
@@ -551,7 +585,17 @@ run_reviewer() {
                 stage_error="Failed to merge PR #$pr_num"
             }
         }
-        [[ -z "$stage_error" ]] && log_success "PR #$pr_num merged"
+        if [[ -z "$stage_error" ]]; then
+            log_success "PR #$pr_num merged"
+            # Post-merge branch cleanup (Issue #1 fix): explicitly delete source branch
+            git push origin --delete "openclaw/issue-$issue_num" 2>/dev/null \
+                && log_info "Remote branch openclaw/issue-$issue_num deleted" \
+                || log_warn "Remote branch openclaw/issue-$issue_num already deleted or not found"
+            # Also clean up local branch if it exists
+            git branch -d "openclaw/issue-$issue_num" 2>/dev/null \
+                || git branch -D "openclaw/issue-$issue_num" 2>/dev/null \
+                || true
+        fi
     fi
     
     if [[ -n "$stage_error" ]]; then
@@ -566,6 +610,51 @@ run_reviewer() {
     clear_state "$issue_num"
     send_stage_notification "$issue_num" "reviewer" "completed"
     log_success "Reviewer stage complete"
+
+    # Step 2: Post-merge branch cleanup — clean up any stray openclaw/issue-* branches
+    # whose PRs have been merged. Complements the inline cleanup above; also handles
+    # edge cases where branches were merged outside this pipeline.
+    if [[ -x "$SCRIPT_DIR/cleanup-merged-branches.sh" ]]; then
+        log_info "Running post-merge branch cleanup..."
+        if "$SCRIPT_DIR/cleanup-merged-branches.sh" --dry-run 2>/dev/null | grep -q "Branches to delete"; then
+            "$SCRIPT_DIR/cleanup-merged-branches.sh" --force 2>/dev/null || true
+        else
+            log_info "No stray merged branches found"
+        fi
+    fi
+}
+
+#-------------------------------------------------------------------------------
+# Validate state consistency at startup (Issue #4 fix)
+# Ensures {issue}_stage and pipeline_state.json agree before proceeding.
+#-------------------------------------------------------------------------------
+validate_state_consistency() {
+    local issue_num="$1"
+    local state_file="$STATE_DIR/${issue_num}_stage"
+    local json_file="$STATE_DIR/pipeline_state.json"
+
+    # If neither file exists, nothing to validate
+    if [[ ! -f "$state_file" && ! -f "$json_file" ]]; then
+        return 0
+    fi
+
+    # Get stage from {issue}_stage file (source of truth)
+    local stage_from_file
+    stage_from_file=$(get_stage "$issue_num")
+
+    # Get stage from pipeline_state.json if it exists
+    if [[ -f "$json_file" ]]; then
+        local stage_from_json
+        stage_from_json=$(grep -o '"stage"[[:space:]]*:[[:space:]]*[0-9]*' "$json_file" 2>/dev/null | grep -o '[0-9]*' | head -1 || echo "")
+
+        if [[ -n "$stage_from_json" && "$stage_from_json" != "$stage_from_file" ]]; then
+            log_warn "State inconsistency detected:"
+            log_warn "  ${issue_num}_stage = $stage_from_file"
+            log_warn "  pipeline_state.json stage = $stage_from_json"
+            log_warn "  Using ${issue_num}_stage as source of truth."
+            log_warn "  pipeline_state.json will be synced on next write."
+        fi
+    fi
 }
 
 #-------------------------------------------------------------------------------
@@ -576,6 +665,9 @@ run_pipeline() {
     local continue_mode="${2:-false}"
     
     log_info "Pipeline started for Issue #$issue_num (continue=$continue_mode)"
+    
+    # Validate state consistency before starting (Issue #4 fix)
+    validate_state_consistency "$issue_num"
     
     # Determine starting stage
     local current_stage

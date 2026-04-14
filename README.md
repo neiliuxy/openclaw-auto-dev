@@ -84,6 +84,25 @@ openclaw-auto-dev/
 
 ---
 
+## 🔨 构建与测试 (Build & Test)
+
+项目的主 `CMakeLists.txt` 位于**项目根目录**，子目录 `src/` 和 `tests/` 会自动被包含。
+
+```bash
+# 从项目根目录构建
+cmake -B build
+cmake --build build --parallel
+
+# 运行所有测试
+ctest --test-dir build --output-on-failure
+```
+
+> **注意**: 直接在 `src/` 目录下也可以单独构建 (`cd src && cmake -B build`)，但推荐从根目录构建以包含 `tests/` 目录。
+
+GitHub Actions CI 会在每次 PR 和 main 分支推送时自动执行以上构建和测试步骤。
+
+---
+
 ## 🚀 快速开始
 
 ### 触发 Pipeline
@@ -116,7 +135,16 @@ tail -f logs/pipeline-$(date '+%Y-%m-%d').log
 
 ## ⚙️ Pipeline Skill
 
-Pipeline 逻辑在 `~/.openclaw/workspace/skills/openclaw-pipeline/`
+Pipeline 核心逻辑通过 **openclaw-pipeline skill** 提供，位于：
 
-- `pipeline-runner.sh` — 主脚本，状态驱动
-- `SKILL.md` — Skill 文档
+```
+~/.openclaw/workspace/skills/openclaw-pipeline/
+├── SKILL.md          # Skill 文档（Pipeline 原理、设计决策）
+├── scripts/          # 实际脚本（由本项目 scripts/ 调用）
+│   └── pipeline-runner.sh
+```
+
+本地 `scripts/pipeline-runner.sh` 是对 skill 中 pipeline-runner 的封装调用，负责：
+- 读取 `.pipeline-state/<num>_stage` 状态文件
+- 按 stage 顺序驱动 Architect → Developer → Tester → Reviewer
+- 每个 stage 完成后更新状态并通知下一个 Agent
