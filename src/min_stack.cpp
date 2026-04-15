@@ -41,6 +41,7 @@ public:
     }
 };
 
+#ifndef MIN_STACK_TEST
 int main() {
     // Test 1: 基础用例 push(3), push(5), getMin -> 3
     {
@@ -85,3 +86,4 @@ int main() {
     std::cout << "\nAll tests passed!" << std::endl;
     return 0;
 }
+#endif

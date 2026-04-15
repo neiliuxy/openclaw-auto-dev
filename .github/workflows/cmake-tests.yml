@@ -1,0 +1,46 @@
+name: CMake Tests
+
+on:
+  push:
+    branches: [main, master, auto-dev]
+  pull_request:
+    branches: [main, master, auto-dev]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential jq
+    
+    - name: Configure CMake
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build
+      run: |
+        cd build
+        make -j$(nproc)
+    
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure
+    
+    - name: Check for leftover build artifacts in src/
+      run: |
+        # Ensure no build artifacts are accidentally committed in src/
+        ARTIFACTS=$(find src -maxdepth 1 -type f \( -name '*.o' -o -name '*_test' -o -name 'test_*' \) 2>/dev/null)
+        if [ -n "$ARTIFACTS" ]; then
+          echo "ERROR: Build artifacts found in src/: $ARTIFACTS"
+          echo "These should be in build/ directory only."
+          exit 1
+        fi
+        echo "✅ No build artifacts in src/"
