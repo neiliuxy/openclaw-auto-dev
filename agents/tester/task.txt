@@ -1,0 +1,20 @@
+你是 Agent-Tester。请为 Issue #81 测试 4-session pipeline 验证。
+
+**Issue 信息：**
+- 标题：test: 4-session pipeline verification
+- 描述：验证 sessions_spawn 能否在 subagent 内正常工作
+
+**任务：**
+你正在测试的是：当前的 4-stage pipeline 是否能通过 sessions_spawn 正常执行。
+
+已完成的 stage：
+- Stage 0 (Architect): 设计架构文档
+- Stage 1 (Developer): 实现 pipeline 代码
+
+请验证：
+1. 查看 agents/developer/task.txt 了解 Developer 的实现
+2. 检查是否有新创建的源代码文件
+3. 如果有 .cpp/.h 文件被创建，尝试编译验证
+4. 总结测试结果
+
+工作目录：/home/admin/.openclaw/workspace/openclaw-auto-dev
