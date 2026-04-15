@@ -1,0 +1,10 @@
+{
+  "issue": 73,
+  "stage": 4,
+  "stage_name": "PipelineDone",
+  "updated_at": "2026-04-15T04:49:00+08:00",
+  "error": null,
+  "merged": true,
+  "merged_by": "pipeline-reviewer-agent",
+  "pr_number": 147
+}

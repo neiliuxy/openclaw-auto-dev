@@ -19,6 +19,9 @@
 #   D5: Issue has openclaw-error but not being worked on
 #   D6: State file exists but issue is CLOSED and openclaw-completed
 #   D7: State file missing but issue had stage labels
+#   D8: Stale PR (>30 days) linked to CLOSED issue (no longer relevant)
+#   D9: Issue closed >24h but still has non-completed stage labels
+#   D9-PR: Stale PR (>30 days) with merge conflicts (bonus enhancement)
 #===============================================================================
 
 set -euo pipefail
@@ -257,6 +260,129 @@ detect_stale_prs() {
     printf '%s\n' "${result[@]:-}"
 }
 
+# D8: Stale PR (>30 days) linked to a CLOSED issue
+# PR is considered linked to a closed issue if:
+# - PR title references an issue number that is now CLOSED, OR
+# - PR branch name references a closed issue (e.g., feat/73-min-stack)
+detect_stale_pr_closed_issue() {
+    local result=()
+    if ! has_gh; then
+        [[ "$VERBOSE" == "true" ]] && log_warn "gh CLI not available, skipping D8"
+        return 0
+    fi
+
+    local cutoff_date
+    cutoff_date=$(date -d "$STALE_PR_DAYS days ago" +%Y-%m-%d 2>/dev/null || date -v-"${STALE_PR_DAYS}d" +%Y-%m-%d 2>/dev/null || echo "1970-01-01")
+
+    local prs
+    prs=$(gh pr list --state open --json number,title,headRefName,updatedAt --jq '.[] | "\(.number)|\(.title)|\(.headRefName)|\(.updatedAt[0:10])"' 2>/dev/null || true)
+
+    while IFS='|' read -r pr_num pr_title head updated; do
+        [[ -z "$pr_num" ]] && continue
+        [[ "$updated" < "$cutoff_date" ]] || continue  # Only stale PRs
+
+        # Extract potential issue numbers from title:
+        # - "(#NNN)"  format: e.g., "feat(#99): fix..."
+        # - "(Issue #NNN)" format: e.g., "Fix: Complete Hello World (Issue #9)"
+        local linked_issue=""
+        if [[ "$pr_title" =~ \(#([0-9]+)\) ]]; then
+            linked_issue="${BASH_REMATCH[1]}"
+        elif [[ "$pr_title" =~ \(Issue[[:space:]]*#([0-9]+)\) ]]; then
+            linked_issue="${BASH_REMATCH[1]}"
+        fi
+
+        # Also try branch name (e.g., feat/73-min-stack)
+        if [[ -z "$linked_issue" ]] && [[ "$head" =~ ^([0-9]+)[_-] ]]; then
+            linked_issue="${BASH_REMATCH[1]}"
+        fi
+
+        # Check if linked issue is CLOSED (skip issue 0 as invalid)
+        if [[ -n "$linked_issue" ]] && [[ "$linked_issue" != "0" ]]; then
+            local issue_state
+            issue_state=$(gh issue view "$linked_issue" --json state --jq '.state' 2>/dev/null || echo "unknown")
+            if [[ "$issue_state" == "CLOSED" ]]; then
+                result+=("{\"pr\":$pr_num,\"title\":\"$pr_title\",\"head\":\"$head\",\"linked_issue\":$linked_issue,\"updated\":\"$updated\",\"rule\":\"D8\",\"severity\":\"HIGH\",\"problem\":\"Stale PR linked to CLOSED issue #$linked_issue\",\"action\":\"close_pr\"}")
+            fi
+        fi
+    done <<< "$prs"
+
+    printf '%s\n' "${result[@]:-}"
+}
+
+# D9: Issue closed >24h but still has non-completed stage labels (not openclaw-completed)
+detect_stale_pr_merge_conflict() {
+    local result=()
+    if ! has_gh; then
+        [[ "$VERBOSE" == "true" ]] && log_warn "gh CLI not available, skipping D9"
+        return 0
+    fi
+
+    local cutoff_date
+    cutoff_date=$(date -d "$STALE_PR_DAYS days ago" +%Y-%m-%d 2>/dev/null || date -v-"${STALE_PR_DAYS}d" +%Y-%m-%d 2>/dev/null || echo "1970-01-01")
+
+    local prs
+    prs=$(gh pr list --state open --json number,title,headRefName,updatedAt --jq '.[] | "\(.number)|\(.title)|\(.headRefName)|\(.updatedAt[0:10])"' 2>/dev/null || true)
+
+    while IFS='|' read -r pr_num pr_title head updated; do
+        [[ -z "$pr_num" ]] && continue
+        [[ "$updated" < "$cutoff_date" ]] || continue  # Only stale PRs
+
+        # Use mergeStateStatus to detect conflicts:
+        # "DIRTY" = merge conflicts exist
+        # "BLOCKED" = cannot merge (may include conflicts or other blockers)
+        local merge_state
+        merge_state=$(gh pr view "$pr_num" --json mergeStateStatus --jq -r '.mergeStateStatus' 2>/dev/null || echo "unknown")
+
+        if [[ "$merge_state" == "DIRTY" ]] || [[ "$merge_state" == "BLOCKED" ]]; then
+            result+=("{\"pr\":$pr_num,\"title\":\"$pr_title\",\"head\":\"$head\",\"updated\":\"$updated\",\"rule\":\"D9_PR\",\"severity\":\"HIGH\",\"problem\":\"Stale PR with merge conflicts (status: $merge_state)\",\"action\":\"close_pr\"}")
+        fi
+    done <<< "$prs"
+
+    printf '%s\n' "${result[@]:-}"
+}
+
+# D9: Issue closed >24h but has non-completed stage labels
+# (non-completed stage labels = any of: openclaw-new, openclaw-architecting, openclaw-developing, openclaw-testing, openclaw-reviewing)
+detect_closed_with_stale_labels() {
+    local result=()
+    if ! has_gh; then
+        [[ "$VERBOSE" == "true" ]] && log_warn "gh CLI not available, skipping D9"
+        return 0
+    fi
+
+    local non_completed_labels="openclaw-new,openclaw-architecting,openclaw-developing,openclaw-testing,openclaw-reviewing"
+
+    # Find closed issues that still have non-completed stage labels
+    local issues
+    issues=$(gh issue list --state closed --json number,title,labels,closedAt --jq '.[] | "\(.number)|\(.title)|\([.labels[].name] | join(","))|\(.closedAt[0:10])"' 2>/dev/null || true)
+
+    local cutoff_hours_ago=24
+    local cutoff_epoch
+    cutoff_epoch=$(date -d "$cutoff_hours_ago hours ago" +%s 2>/dev/null || echo "0")
+
+    while IFS='|' read -r issue_num title labels closed_date; do
+        [[ -z "$issue_num" ]] && continue
+
+        # Check if closed recently (within 24h)
+        if [[ -n "$closed_date" ]]; then
+            local closed_epoch
+            closed_epoch=$(date -d "$closed_date" +%s 2>/dev/null || echo "0")
+            # Only flag if closed more than 24h ago
+            if [[ "$closed_epoch" -lt "$cutoff_epoch" ]]; then
+                # Check if any non-completed stage labels are present
+                for label in openclaw-new openclaw-architecting openclaw-developing openclaw-testing openclaw-reviewing; do
+                    if [[ "$labels" == *"$label"* ]]; then
+                        result+=("{\"issue\":$issue_num,\"title\":\"$title\",\"rule\":\"D9\",\"severity\":\"HIGH\",\"problem\":\"Issue closed but has non-completed label: $label\",\"action\":\"remove_label\"}")
+                        break  # Only report once per issue
+                    fi
+                done
+            fi
+        fi
+    done <<< "$issues"
+
+    printf '%s\n' "${result[@]:-}"
+}
+
 #-------------------------------------------------------------------------------
 # Cleanup Functions
 #-------------------------------------------------------------------------------
@@ -329,6 +455,18 @@ run_all_detections() {
     while IFS= read -r line; do
         [[ -n "$line" ]] && all_issues+=("$line")
     done < <(detect_stale_prs)
+
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && all_issues+=("$line")
+    done < <(detect_stale_pr_closed_issue)
+
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && all_issues+=("$line")
+    done < <(detect_stale_pr_merge_conflict)
+
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && all_issues+=("$line")
+    done < <(detect_closed_with_stale_labels)
     
     printf '%s\n' "${all_issues[@]:-}"
 }
@@ -398,12 +536,28 @@ apply_fixes() {
             D6)
                 fix_issue "$issue_num" "delete-state-file" ""
                 ;;
-            STALE_PR)
+            STALE_PR|D8|D9_PR)
                 # action contains PR number for stale PRs
                 local pr_num
                 pr_num=$(echo "$issue_json" | grep -o '"pr":[0-9]*' | grep -o '[0-9]*' | head -1)
                 if [[ -n "$pr_num" ]]; then
                     fix_issue "$issue_num" "close-pr" "$pr_num"
+                fi
+                ;;
+            D9)
+                # D9 can be either PR (D9_PR with close-pr) or issue (D9 with remove-label)
+                local pr_num
+                pr_num=$(echo "$issue_json" | grep -o '"pr":[0-9]*' | grep -o '[0-9]*' | head -1)
+                if [[ -n "$pr_num" ]]; then
+                    fix_issue "$issue_num" "close-pr" "$pr_num"
+                else
+                    # D9 issue detection: extract the label from problem string
+                    # Format: "problem":"Issue closed but has non-completed label: <label>"
+                    local label
+                    label=$(echo "$issue_json" | grep -o 'non-completed label: [^"]*' | cut -d' ' -f3)
+                    if [[ -n "$label" ]]; then
+                        fix_issue "$issue_num" "remove-label" "$label"
+                    fi
                 fi
                 ;;
         esac
