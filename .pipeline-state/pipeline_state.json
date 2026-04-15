@@ -1,29 +1,10 @@
 {
-  "stage": 3,
-  "status": "done",
-  "merged": true,
-  "merged_at": "2026-04-15T22:09:55+08:00",
-  "started_at": "2026-04-15T21:45:00+08:00",
-  "completed_at": "2026-04-15T22:09:55+08:00",
+  "stage": 1,
+  "status": "in_progress",
+  "started_at": "2026-04-16T00:34:00+0800",
   "repo": "neiliuxy/openclaw-auto-dev",
-  "workspace": "/home/admin/.openclaw/workspace/openclaw-auto-dev",
-  "pr_url": "https://github.com/neiliuxy/openclaw-auto-dev/pull/151",
-  "issue": 151,
-  "architect_output": ".pipeline-state/architect_plan.md",
-  "developer_branch": "feature/architect-plan-stage1-20260415",
-  "developer_pr_url": "https://github.com/neiliuxy/openclaw-auto-dev/pull/151",
-  "developer_changes": {
-    "P3_CMake_fix": "Added WORKING_DIRECTORY for pipeline_83_test in src/CMakeLists.txt",
-    "P5_arch_consolidation": "Deleted ARCHITECT.md, updated ARCHITECTURE.md with consolidated content"
-  },
-  "tester_output": ".pipeline-state/tester_report.md",
-  "tester_status": "passed",
-  "tester_summary": {
-    "tests_run": 9,
-    "tests_passed": 9,
-    "tests_failed": 0,
-    "issues_found": 0,
-    "p3_verified": true,
-    "p5_verified": true
-  }
+  "branch": "openclaw/issue-154",
+  "issue": 154,
+  "architect_output": ".pipeline-state/154_architect_output.md",
+  "spec_file": "SPEC-issue-154.md"
 }
