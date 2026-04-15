@@ -2,7 +2,7 @@
   "stage": 2,
   "status": "done",
   "started_at": "2026-04-15T21:45:00+08:00",
-  "completed_at": "2026-04-15T21:57:00+08:00",
+  "completed_at": "2026-04-15T22:05:00+08:00",
   "repo": "neiliuxy/openclaw-auto-dev",
   "workspace": "/home/admin/.openclaw/workspace/openclaw-auto-dev",
   "architect_output": ".pipeline-state/architect_plan.md",
@@ -14,9 +14,12 @@
   },
   "tester_output": ".pipeline-state/tester_report.md",
   "tester_status": "passed",
-  "test_summary": {
-    "total": 9,
-    "passed": 9,
-    "failed": 0
+  "tester_summary": {
+    "tests_run": 9,
+    "tests_passed": 9,
+    "tests_failed": 0,
+    "issues_found": 0,
+    "p3_verified": true,
+    "p5_verified": true
   }
 }
