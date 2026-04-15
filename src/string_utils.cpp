@@ -75,7 +75,7 @@ std::string replace(const std::string& s, const std::string& from, const std::st
         if (to.empty()) {
             pos++; // Special case: if replacement is empty, advance by 1 to avoid stuck in loop
         } else {
-            pos += to.size();
+            pos += from.size(); // advance by pattern size, not replacement size
         }
     }
     return result;

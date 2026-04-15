@@ -61,7 +61,7 @@ void test_replace() {
     assert(replace("abc", "d", "e") == "abc");                      // no match
     assert(replace("aaa", "a", "bb") == "bbbbbb");                  // longer replacement
     assert(replace("abc", "a", "a") == "abc");                      // same char (no change)
-    assert(replace("test", "t", "tt") == "ttettt");                 // overlapping
+    assert(replace("test", "t", "tt") == "ttesttt");                 // non-overlapping: all 3 t's replaced
     std::cout << "✅ replace passed\n";
 }
 
