@@ -1,8 +1,10 @@
-// Issue #81: 4-session pipeline verification
+// Issue #90: Pipeline State Improvements
 // Pipeline state management - manages stage transitions and state persistence
 
 #ifndef PIPELINE_STATE_H
 #define PIPELINE_STATE_H
+
+#include "pipeline_stage.h"
 
 #include <string>
 #include <vector>
@@ -10,46 +12,7 @@
 
 namespace pipeline {
 
-// Pipeline stage identifiers
-enum class Stage {
-    None = 0,
-    Architect = 1,
-    Developer = 2,
-    Tester = 3,
-    Reviewer = 4
-};
-
-// Stage status
-enum class StageStatus {
-    Pending = 0,
-    Running = 1,
-    Completed = 2,
-    Failed = 3
-};
-
-// Convert stage to string
-inline std::string stage_to_string(Stage s) {
-    switch (s) {
-        case Stage::Architect:  return "architect";
-        case Stage::Developer:  return "developer";
-        case Stage::Tester:     return "tester";
-        case Stage::Reviewer:   return "reviewer";
-        default:                 return "unknown";
-    }
-}
-
-// Convert stage to display name
-inline std::string stage_to_display_name(Stage s) {
-    switch (s) {
-        case Stage::Architect:  return "Architect";
-        case Stage::Developer:  return "Developer";
-        case Stage::Tester:     return "Tester";
-        case Stage::Reviewer:   return "Reviewer";
-        default:                 return "Unknown";
-    }
-}
-
-// Stage result entry
+// Stage result entry (now uses timeout_seconds from pipeline_stage.h)
 struct StageResult {
     int stage_number;
     std::string stage_name;
@@ -57,6 +20,8 @@ struct StageResult {
     std::string session_id;
     time_t started_at;
     time_t completed_at;
+    int timeout_seconds;       // NEW: timeout for this stage (0 = no timeout)
+    time_t last_heartbeat_at;  // NEW: last activity heartbeat
     std::string output_summary;
     std::vector<std::string> files_created;
     std::string error_message;
@@ -65,7 +30,9 @@ struct StageResult {
         : stage_number(0)
         , status(StageStatus::Pending)
         , started_at(0)
-        , completed_at(0) {}
+        , completed_at(0)
+        , timeout_seconds(0)
+        , last_heartbeat_at(0) {}
 };
 
 // Pipeline state
@@ -94,7 +61,7 @@ public:
     // Initialize a new pipeline
     bool initialize();
 
-    // Load existing pipeline state
+    // Load existing pipeline state (returns false if no state found)
     bool load();
 
     // Save current pipeline state
@@ -113,11 +80,23 @@ public:
     // Mark current stage as failed
     bool fail_stage(Stage stage, const std::string& error);
 
+    // Retry a failed stage (resets to pending so it can be started again)
+    bool retry_stage(Stage stage);
+
+    // Send heartbeat for a running stage (updates last_heartbeat_at)
+    bool heartbeat_stage(Stage stage);
+
+    // Check if a running stage has timed out
+    bool is_stage_timed_out(Stage stage) const;
+
     // Check if a specific stage is completed
     bool is_stage_completed(Stage stage) const;
 
-    // Check if pipeline is complete
+    // Check if pipeline is complete (success or failure)
     bool is_pipeline_complete() const;
+
+    // Check if pipeline succeeded (all stages completed)
+    bool is_pipeline_succeeded() const;
 
     // Get current stage
     Stage get_current_stage() const { return current_stage_; }
@@ -133,6 +112,15 @@ public:
 
     // Get pipeline ID
     const std::string& get_pipeline_id() const { return pipeline_id_; }
+
+    // Get pipeline ID
+    int get_issue_number() const { return issue_number_; }
+
+    // Set stage timeout (must be called before start_stage)
+    bool set_stage_timeout(Stage stage, int timeout_seconds);
+
+    // Get stage timeout
+    int get_stage_timeout(Stage stage) const;
 
 private:
     std::string state_dir_;

@@ -11,10 +11,27 @@ target_sources(algorithms
         ${CMAKE_CURRENT_LIST_DIR}/logger.cpp
         ${CMAKE_CURRENT_LIST_DIR}/file_finder.cpp
         ${CMAKE_CURRENT_LIST_DIR}/pipeline_notifier.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/pipeline_state.cpp
 )
 
 target_include_directories(algorithms INTERFACE ${CMAKE_CURRENT_LIST_DIR})
 
 # Issue #83: pipeline notification test executable
-add_executable(pipeline_83_test ${CMAKE_CURRENT_LIST_DIR}/pipeline_83_test.cpp ${CMAKE_CURRENT_LIST_DIR}/pipeline_notifier.cpp)
+add_executable(pipeline_83_test
+    ${CMAKE_CURRENT_LIST_DIR}/pipeline_83_test.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/pipeline_notifier.cpp
+)
 target_include_directories(pipeline_83_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+
+# Issue #90: pipeline state test executable
+# Build the test as both standalone executable AND CTest test
+add_executable(pipeline_state_test
+    ${CMAKE_CURRENT_LIST_DIR}/pipeline_state_test.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/pipeline_state.cpp
+)
+target_include_directories(pipeline_state_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+
+# Register with CTest
+enable_testing()
+include(CTest)
+add_test(NAME pipeline_state_test COMMAND pipeline_state_test)
