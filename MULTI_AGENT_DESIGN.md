@@ -1,156 +1,243 @@
-# Multi-Agent Pipeline Design
+# Multi-Agent Design — OpenClaw Auto Dev Pipeline
 
-> **Status**: Active — the current production design.  
-> See also: [ARCHITECT.md](ARCHITECT.md) for the current Architect agent specification.
+> **Status**: Current (replaces obsolete `DESIGN.md`)
+> **Last Updated**: 2026-04-12
 
 ---
 
 ## Overview
 
-`openclaw-auto-dev` uses a **4-agent sequential pipeline** to automate the full lifecycle from GitHub Issue to merged PR:
+The **openclaw-auto-dev** project implements a state-driven, multi-agent CI/CD pipeline that automates the processing of GitHub Issues through a four-stage workflow:
 
 ```
-GitHub Issue (openclaw-new)
-        │
-        ▼
-┌─────────────────┐
-│   Architect     │  Stage 0 → 1
-│  (Analysis)     │  Reads issue, produces SPEC.md
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   Developer     │  Stage 1 → 2
-│  (Implementation)│ Reads SPEC.md, writes code in src/
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│    Tester       │  Stage 2 → 3
-│  (Verification) │  Builds code, runs tests, writes TEST_REPORT.md
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   Reviewer      │  Stage 3 → 4
-│  (Merge/Close)  │  Creates PR, merges if tests pass, deletes branch
-└────────┬────────┘
-         │
-         ▼
-  Pipeline Done (Stage 4)
-  Issue closed, branch deleted
+Issue Created → Architect → Developer → Tester → Reviewer → PR Merged
+```
+
+Each stage is handled by a specialized AI agent. The pipeline is crash-safe and resumable.
+
+---
+
+## Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        GitHub Issue                             │
+│                  (labeled openclaw-new)                         │
+└───────────────────────────┬───────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   Pipeline Runner                               │
+│            (scripts/pipeline-runner.sh)                        │
+│                                                                 │
+│  1. Read current stage from .pipeline-state/{issue}_stage       │
+│  2. Spawn appropriate agent for current stage                   │
+│  3. Write updated stage on completion                           │
+│  4. Send Feishu notification                                    │
+└───────────────────────────┬───────────────────────────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+        ▼                   ▼                   ▼
+   ┌─────────┐        ┌───────────┐       ┌──────────┐
+   │Architect│        │ Developer │       │  Tester  │
+   │ Stage 1 │        │  Stage 2  │       │ Stage 3  │
+   └────┬────┘        └─────┬─────┘       └────┬─────┘
+        │                   │                  │
+        ▼                   ▼                  ▼
+   SPEC.md created    Code implemented    Tests run &
+                       in src/          TEST_REPORT.md
+                              \            /
+                               \          /
+                                ▼        ▼
+                           ┌──────────────┐
+                           │  Reviewer   │
+                           │   Stage 4   │
+                           └──────┬──────┘
+                                  │
+                                  ▼
+                           PR Created & Merged
+                           Branch Deleted
+                           Stage → 4
 ```
 
 ---
 
 ## Stage Definitions
 
-| Stage | Value | Agent | Input | Output |
-|-------|-------|-------|-------|--------|
-| Initial | 0 | — | GitHub Issue label `openclaw-new` | — |
-| Architect Done | 1 | Architect | Issue title + body | `openclaw/{issue}_{slug}/SPEC.md` |
-| Developer Done | 2 | Developer | SPEC.md | `src/{slug}.cpp` (+ tests) |
-| Tester Done | 3 | Tester | Source files | `openclaw/{issue}_{slug}/TEST_REPORT.md` |
-| Pipeline Done | 4 | Reviewer | All artifacts | Merged PR, closed issue, deleted branch |
+| Stage | Agent     | Input          | Output                    | State |
+|-------|-----------|----------------|---------------------------|-------|
+| 0     | —         | Issue created  | Initial state             | `0`   |
+| 1     | Architect | Issue + labels | `openclaw/{num}_{slug}/SPEC.md` | `1` |
+| 2     | Developer | `SPEC.md`      | `src/{slug}.cpp`          | `2`   |
+| 3     | Tester    | `*.cpp`        | `TEST_REPORT.md`          | `3`   |
+| 4     | Reviewer  | All artifacts  | PR merged, branch deleted | `4`   |
 
 ---
 
 ## State Management
 
-### Source of Truth: `{issue}_stage` files
+### State Files
 
-State is tracked via plain-text files in `.pipeline-state/`:
+State is stored in `.pipeline-state/`:
 
-```
-.pipeline-state/
-├── 73_stage                  ← Current stage for issue #73 (JSON: {"stage": 2, ...})
-├── 73_architect_output.md    ← Architect's detailed analysis for issue #73
-└── pipeline_state.json       ← Global state mirror (kept in sync with {issue}_stage)
-```
+| File | Format | Description |
+|------|--------|-------------|
+| `{issue}_stage` | JSON | Source of truth for a given issue's pipeline stage |
+| `pipeline_state.json` | JSON | Global tracker for the active (or most recent) issue |
 
-- **`{issue}_stage`** is the **canonical source of truth** for each issue's stage.
-- **`pipeline_state.json`** is a mirror of the currently active issue's state. It is updated atomically whenever `{issue}_stage` advances (see `write_state()` in `scripts/pipeline-runner.sh`).
-- On any inconsistency, trust `{issue}_stage` over `pipeline_state.json`.
-
-### Stage File Format
+### State File Format (`{issue}_stage`)
 
 ```json
-{"issue": 73, "stage": 2, "updated_at": "2026-04-12T22:25:00+0800", "error": null}
+{
+  "issue": 73,
+  "stage": 1,
+  "updated_at": "2026-04-12T22:20:00+08:00",
+  "error": null
+}
 ```
+
+### Validation
+
+On pipeline startup, `validate_state_consistency()` checks that `{issue}_stage` and `pipeline_state.json` agree. The `{issue}_stage` file is always the source of truth — if there's a mismatch, a warning is logged and the stage file takes precedence.
 
 ---
 
-## Pipeline Runner
+## Branch Strategy
 
-The pipeline is orchestrated by `scripts/pipeline-runner.sh`:
-
-```bash
-# Run all stages for a new issue
-bash scripts/pipeline-runner.sh 73
-
-# Resume from current stage (after interruption)
-bash scripts/pipeline-runner.sh 73 --continue
-```
-
-Key behaviours:
-- **Idempotent**: Each stage checks if its output already exists before re-running.
-- **Atomic state sync**: Both `{issue}_stage` and `pipeline_state.json` are updated together on every stage transition.
-- **Post-merge cleanup**: After the Reviewer stage merges a PR, the source branch (`openclaw/issue-<num>`) is deleted from the remote automatically.
+- **Working branch**: Each issue is processed on a branch named `openclaw/issue-{num}`
+- **Branch creation**: The Reviewer stage creates the PR branch if it doesn't exist
+- **Post-merge cleanup**: After PR merge, the source branch is deleted both locally and remotely
+- **Stale branch cleanup**: `scripts/cleanup-merged-branches.sh` can be run to clean up any remaining stale branches
 
 ---
 
 ## GitHub Labels
 
-Labels communicate pipeline status on the GitHub Issue:
-
-| Label | Meaning |
-|-------|---------|
-| `openclaw-new` | Queued for processing |
-| `openclaw-architecting` | Stage 0 in progress |
-| `openclaw-developing` | Stage 1 in progress |
-| `openclaw-testing` | Stage 2 in progress |
-| `openclaw-reviewing` | Stage 3 in progress |
-| `openclaw-completed` | PR merged, issue closed |
-| `openclaw-error` | Stage failed (check stage file for details) |
+| Label | Stage | Description |
+|-------|-------|-------------|
+| `openclaw-new` | 0 | Issue waiting to be processed |
+| `openclaw-architecting` | 1 | Architect stage in progress |
+| `openclaw-developing` | 2 | Developer stage in progress |
+| `openclaw-testing` | 3 | Tester stage in progress |
+| `openclaw-reviewing` | 4 | Reviewer stage in progress |
+| `openclaw-completed` | 4 | PR merged successfully |
+| `openclaw-error` | — | A stage failed |
 
 ---
 
-## CI Integration
+## Agent Responsibilities
 
-GitHub Actions (`.github/workflows/ci.yml`) runs automatically on every PR and push to `main`:
+### Architect (Stage 1)
+- Reads the GitHub issue
+- Creates `SPEC.md` with:
+  - Issue description
+  - Goals and acceptance criteria
+  - Implementation plan
+- **Does NOT write code**
 
-```
-cmake -B build → cmake --build build → ctest --test-dir build
-```
+### Developer (Stage 2)
+- Reads `SPEC.md`
+- Implements the code in `src/{slug}.cpp`
+- Commits and pushes to the issue branch
 
-This provides an automated quality gate before the Reviewer stage merges.
+### Tester (Stage 3)
+- Builds the code (`cmake && make`)
+- Runs tests via CTest
+- Creates `TEST_REPORT.md` with results
+- Commits and pushes
 
----
-
-## File Layout
-
-```
-openclaw-auto-dev/
-├── .github/
-│   └── workflows/
-│       └── ci.yml              ← CI: build + test on every PR
-├── .pipeline-state/
-│   ├── {issue}_stage           ← Per-issue stage (source of truth)
-│   ├── {issue}_architect_output.md
-│   └── pipeline_state.json     ← Global mirror
-├── openclaw/
-│   └── {issue}_{slug}/
-│       ├── SPEC.md             ← Architect output
-│       └── TEST_REPORT.md      ← Tester output
-├── scripts/
-│   └── pipeline-runner.sh      ← Main orchestrator
-├── src/                        ← Production + test C++ code
-│   └── CMakeLists.txt
-├── ARCHITECT.md                ← Architect agent instructions
-├── MULTI_AGENT_DESIGN.md       ← This file
-└── README.md
-```
+### Reviewer (Stage 4)
+- Creates a PR from `openclaw/issue-{num}` → `main`
+- Merges the PR (squash first, fallback to merge)
+- Deletes the source branch
+- Updates state to 4 and clears the stage file
 
 ---
 
-*Last updated: 2026-04-12 by Pipeline Developer Agent (issue #73 system improvements)*
+## Concurrency Control
+
+Only **one issue** can be processed at a time. This is enforced by:
+
+1. **Label check**: The pipeline scans for `openclaw-new` labeled issues
+2. **Active issue lock**: While one issue is in progress, others wait
+
+---
+
+## CI/CD Integration
+
+A GitHub Actions workflow (`.github/workflows/cmake-tests.yml`) runs on every PR and push to `main`/`master`/`auto-dev`:
+
+```yaml
+on:
+  push:
+    branches: [main, master, auto-dev]
+  pull_request:
+    branches: [main, master, auto-dev]
+```
+
+The workflow:
+1. Configures CMake
+2. Builds the project
+3. Runs CTest
+4. Checks for leftover build artifacts in `src/`
+
+---
+
+## Error Handling
+
+- Each stage catches errors and writes the error message to the state file
+- Failed stages get the `openclaw-error` label
+- The pipeline can be resumed with `--continue` flag
+- Feishu notifications are sent on both success and failure
+
+---
+
+## Build Instructions
+
+```bash
+# From project root
+cmake -B build
+cmake --build build --parallel
+
+# Run tests
+ctest --test-dir build --output-on-failure
+```
+
+Or from `src/`:
+```bash
+cd src
+cmake -B build
+cmake --build build
+ctest --test-dir build
+```
+
+---
+
+## File Naming Conventions
+
+- **Test files**: `src/*_test.cpp` or `src/*_test.sh`
+- **Source files**: `src/{slug}.cpp`
+- **Specs**: `openclaw/{num}_{slug}/SPEC.md`
+- **Reports**: `openclaw/{num}_{slug}/TEST_REPORT.md`
+
+> Note: Avoid special characters (colons, spaces) in filenames. Use underscores or hyphens.
+
+---
+
+## Key Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/pipeline-runner.sh` | Main pipeline runner |
+| `scripts/cleanup-merged-branches.sh` | Clean up stale merged branches |
+| `scripts/notify-feishu.sh` | Send Feishu notifications |
+| `scripts/scan-issues.sh` | Scan for new issues to process |
+
+---
+
+## References
+
+- `ARCHITECT.md` — Original architecture document
+- `SPEC.md` (per-issue) — Issue-specific specification
+- `.github/workflows/cmake-tests.yml` — CI configuration

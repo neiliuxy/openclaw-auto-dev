@@ -1,3 +1,4 @@
+#include "file_finder_lib.h"
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -18,34 +19,6 @@ void print_usage(const char* prog) {
     std::cout << "  --exclude <dir>    Exclude directory (can repeat)\n";
     std::cout << "  --max-depth <n>    Maximum directory depth (default: unlimited)\n";
     std::cout << "  -h, --help         Show this help\n";
-}
-
-bool match_pattern(const std::string& filename, const std::string& pattern) {
-    // Convert glob pattern to regex
-    std::string regex_pattern;
-    for (char c : pattern) {
-        if (c == '*') {
-            regex_pattern += ".*";
-        } else if (c == '?') {
-            regex_pattern += ".";
-        } else if (c == '.') {
-            regex_pattern += "\\.";
-        } else {
-            regex_pattern += c;
-        }
-    }
-    try {
-        std::regex re(regex_pattern, std::regex::icase);
-        return std::regex_search(filename, re);
-    } catch (...) {
-        return false;
-    }
-}
-
-std::string format_size(size_t bytes) {
-    if (bytes < 1024) return std::to_string(bytes) + " B";
-    if (bytes < 1024 * 1024) return std::to_string(bytes / 1024) + " KB";
-    return std::to_string(bytes / (1024 * 1024)) + " MB";
 }
 
 int main(int argc, char* argv[]) {
@@ -122,12 +95,12 @@ int main(int argc, char* argv[]) {
 
             // Check name pattern
             std::string filename = entry.path().filename().string();
-            if (!match_pattern(filename, name_pattern)) continue;
+            if (!file_finder::match_pattern(filename, name_pattern)) continue;
 
             // Output
             if (is_file) {
                 size_t size = entry.file_size();
-                std::cout << path_str << " (" << format_size(size) << ")\n";
+                std::cout << path_str << " (" << file_finder::format_size(size) << ")\n";
             } else {
                 std::cout << path_str << "/\n";
             }

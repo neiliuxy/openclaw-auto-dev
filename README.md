@@ -135,7 +135,16 @@ tail -f logs/pipeline-$(date '+%Y-%m-%d').log
 
 ## ⚙️ Pipeline Skill
 
-Pipeline 逻辑在 `~/.openclaw/workspace/skills/openclaw-pipeline/`
+Pipeline 核心逻辑通过 **openclaw-pipeline skill** 提供，位于：
 
-- `pipeline-runner.sh` — 主脚本，状态驱动
-- `SKILL.md` — Skill 文档
+```
+~/.openclaw/workspace/skills/openclaw-pipeline/
+├── SKILL.md          # Skill 文档（Pipeline 原理、设计决策）
+├── scripts/          # 实际脚本（由本项目 scripts/ 调用）
+│   └── pipeline-runner.sh
+```
+
+本地 `scripts/pipeline-runner.sh` 是对 skill 中 pipeline-runner 的封装调用，负责：
+- 读取 `.pipeline-state/<num>_stage` 状态文件
+- 按 stage 顺序驱动 Architect → Developer → Tester → Reviewer
+- 每个 stage 完成后更新状态并通知下一个 Agent

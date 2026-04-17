@@ -87,13 +87,38 @@ EOF
 log_scan "INFO" "扫描结果已保存到 scan-result.json"
 
 # 运行 Issue 状态清理（修复 labels 错乱等异常状态）
+# Per SPEC-issue-cleanup.md §3.3: run cleanup check every 6 hours
 if [[ -f "$SCRIPT_DIR/cleanup-issue-status.sh" ]]; then
-    log_scan "INFO" "运行 cleanup-issue-status.sh 进行状态检查..."
-    cleanup_output=$(bash "$SCRIPT_DIR/cleanup-issue-status.sh" --dry-run 2>&1 || true)
-    if echo "$cleanup_output" | grep -q "Found.*issue.*abnormal"; then
-        log_scan "WARN" "发现异常 Issue 状态，需要手动处理"
-        echo "$cleanup_output" >> "$LOG_FILE"
-    elif echo "$cleanup_output" | grep -q "No abnormal"; then
-        log_scan "INFO" "Issue 状态检查正常"
+    # Check if cleanup ran in last 6 hours (21600 seconds)
+    cleanup_interval=21600  # 6 hours
+    last_cleanup_timestamp="$STATE_DIR/.last_cleanup_timestamp"
+    last_cleanup=$(cat "$last_cleanup_timestamp" 2>/dev/null || echo 0)
+    current_time=$(date +%s)
+    
+    if (( current_time - last_cleanup >= cleanup_interval )); then
+        log_scan "INFO" "运行 cleanup-issue-status.sh 进行状态检查..."
+        cleanup_output=$(bash "$SCRIPT_DIR/cleanup-issue-status.sh" --dry-run --json 2>&1 || true)
+        
+        # Save cleanup report
+        echo "$cleanup_output" > "$STATE_DIR/cleanup-report.json"
+        
+        if echo "$cleanup_output" | grep -qE '\[.*\]' && [[ -s "$STATE_DIR/cleanup-report.json" ]]; then
+            log_scan "WARN" "发现异常 Issue 状态，需要手动处理。详见 cleanup-report.json"
+        elif echo "$cleanup_output" | grep -q "No abnormal" || echo "$cleanup_output" | grep -q "No issues"; then
+            log_scan "INFO" "Issue 状态检查正常"
+        fi
+        
+        # Update timestamp
+        echo "$current_time" > "$last_cleanup_timestamp"
+    else
+        log_scan "DEBUG" "Cleanup 检查跳过（距上次检查未满 6 小时）"
     fi
+fi
+
+# 输出扫描结果汇总日志（Issue #152: 完善日志完整性）
+if [[ -f "$PROJECT_ROOT/scan-result.json" ]]; then
+    scan_status=$(jq -r '.status' "$PROJECT_ROOT/scan-result.json" 2>/dev/null || echo "unknown")
+    scan_issue=$(jq -r '.issue_number' "$PROJECT_ROOT/scan-result.json" 2>/dev/null || echo "none")
+    scan_title=$(jq -r '.issue_title' "$PROJECT_ROOT/scan-result.json" 2>/dev/null || echo "none")
+    log_scan "INFO" "扫描结果汇总: status=$scan_status issue=#$scan_issue title=\"$scan_title\""
 fi

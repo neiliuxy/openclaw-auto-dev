@@ -15,7 +15,6 @@ target_sources(algorithms
         ${CMAKE_CURRENT_LIST_DIR}/string_utils.cpp
         ${CMAKE_CURRENT_LIST_DIR}/ini_parser.cpp
         ${CMAKE_CURRENT_LIST_DIR}/logger.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/file_finder.cpp
         ${CMAKE_CURRENT_LIST_DIR}/pipeline_notifier.cpp
         ${CMAKE_CURRENT_LIST_DIR}/pipeline_state.cpp
 )
@@ -26,6 +25,7 @@ target_include_directories(algorithms INTERFACE ${CMAKE_CURRENT_LIST_DIR})
 add_executable(pipeline_83_test ${CMAKE_CURRENT_LIST_DIR}/pipeline_83_test.cpp ${CMAKE_CURRENT_LIST_DIR}/pipeline_notifier.cpp)
 target_include_directories(pipeline_83_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 add_test(NAME pipeline_83_test COMMAND pipeline_83_test)
+set_tests_properties(pipeline_83_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 # Issue #95: spawn order test executable
 add_executable(spawn_order_test ${CMAKE_CURRENT_LIST_DIR}/spawn_order_test.cpp ${CMAKE_CURRENT_LIST_DIR}/spawn_order.cpp)
@@ -71,3 +71,26 @@ add_executable(pipeline_state_test ${CMAKE_CURRENT_LIST_DIR}/pipeline_state_test
 target_include_directories(pipeline_state_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 add_test(NAME pipeline_state_test COMMAND pipeline_state_test)
 set_tests_properties(pipeline_state_test PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+# Issue #152: string_utils unit tests
+add_executable(string_utils_test ${CMAKE_CURRENT_LIST_DIR}/string_utils_test.cpp)
+target_link_libraries(string_utils_test PRIVATE algorithms)
+target_include_directories(string_utils_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+add_test(NAME string_utils_test COMMAND string_utils_test)
+
+# Issue #152: ini_parser unit tests
+add_executable(ini_parser_test ${CMAKE_CURRENT_LIST_DIR}/ini_parser_test.cpp)
+target_link_libraries(ini_parser_test PRIVATE algorithms)
+target_include_directories(ini_parser_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+add_test(NAME ini_parser_test COMMAND ini_parser_test)
+
+# file_finder CLI executable
+add_executable(file_finder ${CMAKE_CURRENT_LIST_DIR}/file_finder.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/file_finder_lib.cpp)
+target_include_directories(file_finder PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+
+# Issue #152: file_finder_lib unit tests
+add_executable(file_finder_test ${CMAKE_CURRENT_LIST_DIR}/file_finder_test.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/file_finder_lib.cpp)
+target_include_directories(file_finder_test PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+add_test(NAME file_finder_test COMMAND file_finder_test)

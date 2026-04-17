@@ -610,6 +610,99 @@ run_reviewer() {
     clear_state "$issue_num"
     send_stage_notification "$issue_num" "reviewer" "completed"
     log_success "Reviewer stage complete"
+
+    # Step 2: Post-merge branch cleanup — clean up any stray openclaw/issue-* branches
+    # whose PRs have been merged. Complements the inline cleanup above; also handles
+    # edge cases where branches were merged outside this pipeline.
+    if [[ -x "$SCRIPT_DIR/cleanup-merged-branches.sh" ]]; then
+        log_info "Running post-merge branch cleanup..."
+        if "$SCRIPT_DIR/cleanup-merged-branches.sh" --dry-run 2>/dev/null | grep -q "Branches to delete"; then
+            "$SCRIPT_DIR/cleanup-merged-branches.sh" --force 2>/dev/null || true
+        else
+            log_info "No stray merged branches found"
+        fi
+    fi
+}
+
+#-------------------------------------------------------------------------------
+# Validate state consistency at startup (Issue #4 fix)
+# Ensures {issue}_stage and pipeline_state.json agree before proceeding.
+#-------------------------------------------------------------------------------
+validate_state_consistency() {
+    local issue_num="$1"
+    local state_file="$STATE_DIR/${issue_num}_stage"
+    local json_file="$STATE_DIR/pipeline_state.json"
+
+    # If neither file exists, nothing to validate
+    if [[ ! -f "$state_file" && ! -f "$json_file" ]]; then
+        return 0
+    fi
+
+    # Get stage from {issue}_stage file (source of truth)
+    local stage_from_file
+    stage_from_file=$(get_stage "$issue_num")
+
+    # Get stage from pipeline_state.json if it exists
+    if [[ -f "$json_file" ]]; then
+        local stage_from_json
+        stage_from_json=$(grep -o '"stage"[[:space:]]*:[[:space:]]*[0-9]*' "$json_file" 2>/dev/null | grep -o '[0-9]*' | head -1 || echo "")
+
+        if [[ -n "$stage_from_json" && "$stage_from_json" != "$stage_from_file" ]]; then
+            log_warn "State inconsistency detected:"
+            log_warn "  ${issue_num}_stage = $stage_from_file"
+            log_warn "  pipeline_state.json stage = $stage_from_json"
+            log_warn "  Using ${issue_num}_stage as source of truth."
+            log_warn "  pipeline_state.json will be synced on next write."
+        fi
+    fi
+}
+
+#-------------------------------------------------------------------------------
+# Cleanup: Remove invalid state files from .pipeline-state/
+#-------------------------------------------------------------------------------
+cleanup_invalid_state_files() {
+    local state_dir="${1:-.pipeline-state}"
+    log_info "Cleaning up invalid state files in $state_dir..."
+    # Delete non-numeric stage files (e.g., 0_stage, plan.json, architect_plan.md)
+    find "$state_dir" -maxdepth 1 -name "*_stage" ! -name "[0-9]*_stage" -delete 2>/dev/null || true
+    find "$state_dir" -maxdepth 1 -name "plan.json" -delete 2>/dev/null || true
+    find "$state_dir" -maxdepth 1 -name "architect_plan.md" -delete 2>/dev/null || true
+    # Also clean up the 0_stage file if present
+    rm -f "$state_dir/0_stage" 2>/dev/null || true
+    log_info "Cleanup complete"
+}
+
+#-------------------------------------------------------------------------------
+# Validate state consistency at startup (Issue #4 fix)
+# Ensures {issue}_stage and pipeline_state.json agree before proceeding.
+#-------------------------------------------------------------------------------
+validate_state_consistency() {
+    local issue_num="$1"
+    local state_file="$STATE_DIR/${issue_num}_stage"
+    local json_file="$STATE_DIR/pipeline_state.json"
+
+    # If neither file exists, nothing to validate
+    if [[ ! -f "$state_file" && ! -f "$json_file" ]]; then
+        return 0
+    fi
+
+    # Get stage from {issue}_stage file (source of truth)
+    local stage_from_file
+    stage_from_file=$(get_stage "$issue_num")
+
+    # Get stage from pipeline_state.json if it exists
+    if [[ -f "$json_file" ]]; then
+        local stage_from_json
+        stage_from_json=$(grep -o '"stage"[[:space:]]*:[[:space:]]*[0-9]*' "$json_file" 2>/dev/null | grep -o '[0-9]*' | head -1 || echo "")
+
+        if [[ -n "$stage_from_json" && "$stage_from_json" != "$stage_from_file" ]]; then
+            log_warn "State inconsistency detected:"
+            log_warn "  ${issue_num}_stage = $stage_from_file"
+            log_warn "  pipeline_state.json stage = $stage_from_json"
+            log_warn "  Using ${issue_num}_stage as source of truth."
+            log_warn "  pipeline_state.json will be synced on next write."
+        fi
+    fi
 }
 
 #-------------------------------------------------------------------------------
@@ -620,6 +713,8 @@ run_pipeline() {
     local continue_mode="${2:-false}"
     
     log_info "Pipeline started for Issue #$issue_num (continue=$continue_mode)"
+    
+validate_state_consistency "$issue_num"
     
     # Determine starting stage
     local current_stage
