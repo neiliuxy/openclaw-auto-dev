@@ -673,6 +673,39 @@ cleanup_invalid_state_files() {
 }
 
 #-------------------------------------------------------------------------------
+# Validate state consistency at startup (Issue #4 fix)
+# Ensures {issue}_stage and pipeline_state.json agree before proceeding.
+#-------------------------------------------------------------------------------
+validate_state_consistency() {
+    local issue_num="$1"
+    local state_file="$STATE_DIR/${issue_num}_stage"
+    local json_file="$STATE_DIR/pipeline_state.json"
+
+    # If neither file exists, nothing to validate
+    if [[ ! -f "$state_file" && ! -f "$json_file" ]]; then
+        return 0
+    fi
+
+    # Get stage from {issue}_stage file (source of truth)
+    local stage_from_file
+    stage_from_file=$(get_stage "$issue_num")
+
+    # Get stage from pipeline_state.json if it exists
+    if [[ -f "$json_file" ]]; then
+        local stage_from_json
+        stage_from_json=$(grep -o '"stage"[[:space:]]*:[[:space:]]*[0-9]*' "$json_file" 2>/dev/null | grep -o '[0-9]*' | head -1 || echo "")
+
+        if [[ -n "$stage_from_json" && "$stage_from_json" != "$stage_from_file" ]]; then
+            log_warn "State inconsistency detected:"
+            log_warn "  ${issue_num}_stage = $stage_from_file"
+            log_warn "  pipeline_state.json stage = $stage_from_json"
+            log_warn "  Using ${issue_num}_stage as source of truth."
+            log_warn "  pipeline_state.json will be synced on next write."
+        fi
+    fi
+}
+
+#-------------------------------------------------------------------------------
 # Main Pipeline Logic
 #-------------------------------------------------------------------------------
 run_pipeline() {
@@ -681,11 +714,7 @@ run_pipeline() {
     
     log_info "Pipeline started for Issue #$issue_num (continue=$continue_mode)"
     
-    # Cleanup invalid state files before starting
-    cleanup_invalid_state_files "$STATE_DIR"
-    
-    # Validate state consistency before starting (Issue #4 fix)
-    validate_state_consistency "$issue_num"
+validate_state_consistency "$issue_num"
     
     # Determine starting stage
     local current_stage
