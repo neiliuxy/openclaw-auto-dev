@@ -9,10 +9,13 @@
 #include <string>
 #include <vector>
 #include <cstdlib>
+#include <algorithm>
+#include <unistd.h>
 
 namespace fs = std::filesystem;
 using file_finder::match_pattern;
 using file_finder::format_size;
+using file_finder::find_files;
 
 void test_match_pattern_exact() {
     assert(match_pattern("test.cpp", "test.cpp") == true);
@@ -72,6 +75,42 @@ void test_format_size_megabytes() {
     std::cout << "✅ format_size_megabytes passed\n";
 }
 
+void test_find_files_basic() {
+    // Create temp directory structure
+    std::string test_dir = "/tmp/file_finder_test_" + std::to_string(getpid());
+    fs::create_directories(test_dir + "/subdir");
+    
+    // Create test files
+    std::ofstream(test_dir + "/file1.cpp") << "// test";
+    std::ofstream(test_dir + "/file2.h") << "// test";
+    std::ofstream(test_dir + "/subdir/file3.cpp") << "// test";
+    
+    // Test recursive search
+    auto results = find_files(test_dir, "*.cpp", true);
+    assert(results.size() == 2); // file1.cpp and subdir/file3.cpp
+    std::cout << "✅ find_files_basic passed\n";
+    
+    // Test non-recursive search
+    auto results_nr = find_files(test_dir, "*.cpp", false);
+    assert(results_nr.size() == 1); // only file1.cpp
+    std::cout << "✅ find_files_non_recursive passed\n";
+    
+    // Cleanup
+    fs::remove_all(test_dir);
+}
+
+void test_find_files_no_match() {
+    std::string test_dir = "/tmp/file_finder_test_nomatch_" + std::to_string(getpid());
+    fs::create_directories(test_dir);
+    std::ofstream(test_dir + "/file1.txt") << "test";
+    
+    auto results = find_files(test_dir, "*.cpp", true);
+    assert(results.empty());
+    std::cout << "✅ find_files_no_match passed\n";
+    
+    fs::remove_all(test_dir);
+}
+
 int main() {
     std::cout << "=== file_finder_lib Unit Tests ===\n\n";
     
@@ -87,6 +126,10 @@ int main() {
     test_format_size_bytes();
     test_format_size_kilobytes();
     test_format_size_megabytes();
+    
+    std::cout << "\n--- File Finding Tests ---\n";
+    test_find_files_basic();
+    test_find_files_no_match();
     
     std::cout << "\n=== All Tests Passed ===\n";
     return 0;
