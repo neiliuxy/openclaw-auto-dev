@@ -4,7 +4,13 @@ on:
   push:
     branches:
       - main
+      - master
+      - auto-dev
   pull_request:
+    branches:
+      - main
+      - master
+      - auto-dev
 
 jobs:
   build-and-test:
