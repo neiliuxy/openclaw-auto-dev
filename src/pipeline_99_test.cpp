@@ -29,24 +29,30 @@ void test_99_initial_stage() {
     std::cout << "✅ T1 synthetic issue API roundtrip passed\n";
 }
 
-// Test: 验证 Developer 阶段状态写入和读取
+// Test: 验证 Developer 阶段状态写入和读取（使用合成 issue 避免与实时 pipeline 竞态）
 void test_99_developer_stage() {
-    // 备份当前状态
-    int original = read_stage(99, ".pipeline-state");
+    const int synthetic_issue = 99997;
+    // 备份当前状态（如果存在）
+    int original = read_stage(synthetic_issue, ".pipeline-state");
     
     // 写入 Stage 2 (DeveloperDone)
-    bool write_ok = write_stage(99, 2, ".pipeline-state");
+    bool write_ok = write_stage(synthetic_issue, 2, ".pipeline-state");
     assert(write_ok == true);
-    std::cout << "✅ T2 write_stage(99, 2) passed\n";
+    std::cout << "✅ T2 write_stage(99997, 2) passed\n";
     
     // 读取验证
-    int stage = read_stage(99, ".pipeline-state");
+    int stage = read_stage(synthetic_issue, ".pipeline-state");
     assert(stage == 2);
-    std::cout << "✅ T3 read_stage(99) = 2 (DeveloperDone) passed\n";
+    std::cout << "✅ T3 read_stage(99997) = 2 (DeveloperDone) passed\n";
     
-    // 恢复原始状态
-    write_stage(99, original, ".pipeline-state");
-    std::cout << "✅ T4 restore original stage = " << original << " passed\n";
+    // 恢复原始状态或清理
+    if (original >= 0) {
+        write_stage(synthetic_issue, original, ".pipeline-state");
+    } else {
+        std::string path = ".pipeline-state/" + std::to_string(synthetic_issue) + "_stage";
+        std::remove(path.c_str());
+    }
+    std::cout << "✅ T4 restore/cleanup synthetic issue stage passed\n";
 }
 
 // Test: 验证 stage_to_description 转换正确性
