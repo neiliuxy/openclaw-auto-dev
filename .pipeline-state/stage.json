@@ -1,7 +1,6 @@
 {
-  "stage": 4,
-  "updated": "2026-04-17T14:56:00+08:00",
+  "stage": 1,
   "repo": "neiliuxy/openclaw-auto-dev",
-  "issue": 152,
-  "notes": "Reviewer complete - PR merged, labels updated, advancing to PipelineDone"
+  "updated_at": "2026-04-18T05:15:00+08:00",
+  "label": "pipeline:stage-1"
 }
