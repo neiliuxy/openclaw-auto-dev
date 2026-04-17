@@ -658,6 +658,21 @@ validate_state_consistency() {
 }
 
 #-------------------------------------------------------------------------------
+# Cleanup: Remove invalid state files from .pipeline-state/
+#-------------------------------------------------------------------------------
+cleanup_invalid_state_files() {
+    local state_dir="${1:-.pipeline-state}"
+    log_info "Cleaning up invalid state files in $state_dir..."
+    # Delete non-numeric stage files (e.g., 0_stage, plan.json, architect_plan.md)
+    find "$state_dir" -maxdepth 1 -name "*_stage" ! -name "[0-9]*_stage" -delete 2>/dev/null || true
+    find "$state_dir" -maxdepth 1 -name "plan.json" -delete 2>/dev/null || true
+    find "$state_dir" -maxdepth 1 -name "architect_plan.md" -delete 2>/dev/null || true
+    # Also clean up the 0_stage file if present
+    rm -f "$state_dir/0_stage" 2>/dev/null || true
+    log_info "Cleanup complete"
+}
+
+#-------------------------------------------------------------------------------
 # Main Pipeline Logic
 #-------------------------------------------------------------------------------
 run_pipeline() {
@@ -665,6 +680,9 @@ run_pipeline() {
     local continue_mode="${2:-false}"
     
     log_info "Pipeline started for Issue #$issue_num (continue=$continue_mode)"
+    
+    # Cleanup invalid state files before starting
+    cleanup_invalid_state_files "$STATE_DIR"
     
     # Validate state consistency before starting (Issue #4 fix)
     validate_state_consistency "$issue_num"

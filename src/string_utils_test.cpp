@@ -54,6 +54,14 @@ void test_ends_with() {
 void test_replace() {
     assert(replace("hello world", "world", "cpp") == "hello cpp");
     assert(replace("aaa", "a", "b") == "bbb");
+    // Edge cases
+    assert(replace("", "a", "b") == "");                           // empty source
+    assert(replace("abc", "", "x") == "abc");                      // empty pattern
+    assert(replace("abc", "a", "") == "bc");                       // empty replacement
+    assert(replace("abc", "d", "e") == "abc");                      // no match
+    assert(replace("aaa", "a", "bb") == "bbbbbb");                  // longer replacement
+    assert(replace("abc", "a", "a") == "abc");                      // same char (no change)
+    assert(replace("test", "t", "tt") == "ttettt");                 // overlapping
     std::cout << "✅ replace passed\n";
 }
 
