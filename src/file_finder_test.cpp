@@ -1,6 +1,7 @@
-// file_finder_test.cpp - Unit tests for file_finder utility
-// Tests the pattern matching and file search functionality
+// file_finder_test.cpp - Unit tests for file_finder_lib
+// Tests the pattern matching and file search functionality from file_finder_lib
 
+#include "file_finder_lib.h"
 #include <iostream>
 #include <cassert>
 #include <fstream>
@@ -8,38 +9,10 @@
 #include <string>
 #include <vector>
 #include <cstdlib>
-#include <regex>
 
 namespace fs = std::filesystem;
-
-// Helper function to check if pattern matches (mirrors file_finder.cpp logic)
-bool match_pattern(const std::string& filename, const std::string& pattern) {
-    std::string regex_pattern;
-    for (char c : pattern) {
-        if (c == '*') {
-            regex_pattern += ".*";
-        } else if (c == '?') {
-            regex_pattern += ".";
-        } else if (c == '.') {
-            regex_pattern += "\\.";
-        } else {
-            regex_pattern += c;
-        }
-    }
-    try {
-        std::regex re(regex_pattern, std::regex::icase);
-        return std::regex_search(filename, re);
-    } catch (...) {
-        return false;
-    }
-}
-
-// Helper function to format size (mirrors file_finder.cpp logic)
-std::string format_size(size_t bytes) {
-    if (bytes < 1024) return std::to_string(bytes) + " B";
-    if (bytes < 1024 * 1024) return std::to_string(bytes / 1024) + " KB";
-    return std::to_string(bytes / (1024 * 1024)) + " MB";
-}
+using file_finder::match_pattern;
+using file_finder::format_size;
 
 void test_match_pattern_exact() {
     assert(match_pattern("test.cpp", "test.cpp") == true);
@@ -100,7 +73,7 @@ void test_format_size_megabytes() {
 }
 
 int main() {
-    std::cout << "=== file_finder Unit Tests ===\n\n";
+    std::cout << "=== file_finder_lib Unit Tests ===\n\n";
     
     std::cout << "--- Pattern Matching Tests ---\n";
     test_match_pattern_exact();
