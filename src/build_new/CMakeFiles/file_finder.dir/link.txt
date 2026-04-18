@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -rdynamic CMakeFiles/file_finder.dir/file_finder.o CMakeFiles/file_finder.dir/file_finder_lib.o -o file_finder 
