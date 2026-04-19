@@ -2,10 +2,7 @@
 
 > **Status**: Stage 1 (Architect) Output  
 > **Date**: 2026-04-06  
-> **Updated**: 2026-04-15 (consolidated with ARCHITECT.md content)
 > **Author**: Architect Agent  
-
-> **Note**: This document supersedes `ARCHITECT.md` (dated 2026-03-31). Key historical context from ARCHITECT.md has been incorporated where relevant. See Section 8 for a consolidated reference.
 
 ---
 
@@ -213,73 +210,3 @@ pipeline_83_test          Passed
 3. Optionally create `MULTI_AGENT_DESIGN.md` for documentation completeness
 4. Run `ctest` to verify all 3 tests pass
 5. End-to-end test: create a test Issue with `openclaw-new` label, run pipeline, verify PR creation
-
----
-
-## 8. Consolidated Architecture Reference
-
-> This section incorporates key historical context from the superseded `ARCHITECT.md`.
-
-### 8.1 Pipeline State Transitions
-
-```
-                    ┌─────────────────────────────────────────────────────┐
-                    │                                             stage │
-                    ▼                                                   │
-openclaw-new ──[SCAN]──► 0 (Architect) ──────────────────► 1 (Developer)  │
-                                                               │         │
-                                                               ▼         │
-                                    4 (PipelineDone) ◄──── 3 (Reviewer)  │
-                                           ▲            │                │
-                                           │            ▼                │
-                                     PR merged    2 (Tester)             │
-                                           ▲            │                │
-                                           │            ▼                │
-                                        [MERGE]     1 (Developer) ───────┘
-                                                               ▲
-                                                               │
-                                                         0 (Architect)
-```
-
-### 8.2 Language & Tooling Choices
-
-| Component | Language/Tool | Rationale |
-|-----------|---------------|------------|
-| Pipeline Scripts | Bash | GitHub Actions compatibility, simplicity |
-| State Library | C++ | Reusable across C++ test binaries |
-| Tests | C++ assert framework | In-tree, no external test dependencies |
-| Build System | CMake | Standard C++ build, multi-platform |
-
-### 8.3 Branching Strategy
-
-**Pattern**: Each issue gets a dedicated branch `openclaw/issue-<number>`
-
-**Rationale**:
-- Easy to identify which branch belongs to which issue
-- Avoids conflicts with `main` branch protection
-- Clear PR history linking issue → implementation
-
-### 8.4 Known Issues (Historical)
-
-| Issue | Description | Impact |
-|-------|-------------|--------|
-| NO_STAGE_FILES logs | Frequent `NO_STAGE_FILES_*.log` entries in .pipeline-state/ | Normal - indicates no issues need processing |
-| Stale branch cleanup | Old `openclaw/issue-*` branches not deleted after merge | Minor - accumulates stale branches (addressed in pipeline-runner.sh post-merge cleanup) |
-| agents/ directory deprecated | Old static task files present in `agents/deprecated/` | Minor - legacy confusion, directory officially deprecated |
-
-### 8.5 Implementation Status (as of 2026-04-06)
-
-| Component | Status | Notes |
-|-----------|--------|-------|
-| Pipeline runner | ✅ Functional | Processes stages 0-3 correctly |
-| State file I/O | ✅ Functional | JSON format, backward compat with plain int |
-| CMake build | ✅ Functional | All sources compile |
-| spawn_order_test | ✅ Passing | General pipeline flow test |
-| heartbeat-check.sh | ✅ Functional | Scans for new issues |
-| Issue completion flow | ✅ Working | Multiple issues merged (e.g., #64, #73, #99) |
-| Branch cleanup | ✅ Improved | Post-merge cleanup added to pipeline-runner.sh |
-| CTest registration (pipeline_83_test) | ✅ Fixed | WORKING_DIRECTORY set in CMakeLists.txt |
-
----
-
-*This document is maintained alongside `SPEC.md` (full system specification). `DESIGN.md` is obsolete and should not be referenced.*
