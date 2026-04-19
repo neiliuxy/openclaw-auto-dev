@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -rdynamic CMakeFiles/min_stack_test.dir/min_stack_test.o -o min_stack_test 

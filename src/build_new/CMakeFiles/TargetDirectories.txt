@@ -1,0 +1,15 @@
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/min_stack_test.dir
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/pipeline_83_test.dir
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/spawn_order_test.dir
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/pipeline_97_test.dir
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/pipeline_99_test.dir
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/pipeline_102_test.dir
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/pipeline_104_test.dir
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/algorithm_test.dir
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/pipeline_state_test.dir
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/string_utils_test.dir
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/ini_parser_test.dir
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/file_finder.dir
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/file_finder_test.dir
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/edit_cache.dir
+/home/admin/.openclaw/workspace/openclaw-auto-dev/src/build_new/CMakeFiles/rebuild_cache.dir

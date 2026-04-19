@@ -114,3 +114,11 @@ if [[ -f "$SCRIPT_DIR/cleanup-issue-status.sh" ]]; then
         log_scan "DEBUG" "Cleanup 检查跳过（距上次检查未满 6 小时）"
     fi
 fi
+
+# 输出扫描结果汇总日志（Issue #152: 完善日志完整性）
+if [[ -f "$PROJECT_ROOT/scan-result.json" ]]; then
+    scan_status=$(jq -r '.status' "$PROJECT_ROOT/scan-result.json" 2>/dev/null || echo "unknown")
+    scan_issue=$(jq -r '.issue_number' "$PROJECT_ROOT/scan-result.json" 2>/dev/null || echo "none")
+    scan_title=$(jq -r '.issue_title' "$PROJECT_ROOT/scan-result.json" 2>/dev/null || echo "none")
+    log_scan "INFO" "扫描结果汇总: status=$scan_status issue=#$scan_issue title=\"$scan_title\""
+fi
