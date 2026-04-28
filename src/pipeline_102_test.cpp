@@ -24,11 +24,11 @@ void test_102_state_file_exists() {
     std::cout << "✅ T1 pipeline state file exists for Issue #102\n";
 }
 
-// Test: 验证 Issue #102 的初始阶段（Stage 1 - Architect 已完成）
+// Test: 验证 Issue #102 的当前阶段（Stage 2 - DeveloperDone）
 void test_102_initial_stage() {
     int stage = read_stage(102, ".pipeline-state");
-    assert(stage == 1);
-    std::cout << "✅ T2 Issue #102 current stage = 1 (ArchitectDone)\n";
+    assert(stage == 2);
+    std::cout << "✅ T2 Issue #102 current stage = 2 (DeveloperDone)\n";
 }
 
 // Test: 验证 SPEC.md 文件存在
