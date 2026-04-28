@@ -2,6 +2,8 @@
 
 🤖 **AI 驱动的 GitHub Issue → PR 自动化工作流**
 
+[![CI](https://github.com/neiliuxy/openclaw-auto-dev/actions/workflows/ci.yml/badge.svg)](https://github.com/neiliuxy/openclaw-auto-dev/actions/workflows/ci.yml)
+
 ---
 
 ## 📋 项目概述
@@ -111,6 +113,19 @@ ls -la .pipeline-state/
 # 查看日志
 tail -f logs/pipeline-$(date '+%Y-%m-%d').log
 ```
+
+---
+
+## 🌿 分支策略
+
+| 分支 | 用途 | 说明 |
+|------|------|------|
+| `main` | 生产就绪代码 | 受保护分支 |
+| `auto-dev` | 主动开发分支 | 活跃开发在此进行 |
+| `develop` | 已废弃 | 请使用 `auto-dev` |
+| `openclaw/issue-*` | Issue 对应功能分支 | PR 合并后自动清理 |
+
+分支清理脚本：`scripts/cleanup-branches.sh`（带 `--dry-run` 参数可预览）
 
 ---
 

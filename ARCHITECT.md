@@ -199,8 +199,20 @@ GitHub Actions workflows for CI/CD
 | Issue | Description | Impact |
 |-------|-------------|--------|
 | NO_STAGE_FILES logs | Frequent `NO_STAGE_FILES_*.log` entries in .pipeline-state/ | Normal - indicates no issues need processing |
-| Stale branch cleanup | Old `openclaw/issue-*` branches not deleted after merge | Minor - accumulates stale branches |
-| agents/ directory deprecated | Old static task files still present but ignored | Minor - legacy confusion |
+| ~~Stale branch cleanup~~ | ~~Old `openclaw/issue-*` branches not deleted after merge~~ | ✅ Fixed by `scripts/cleanup-branches.sh` |
+| ~~agents/ directory deprecated~~ | ~~Old static task files still present but ignored~~ | ✅ Fixed - moved to `agents/README.deprecated.md` |
+
+### 4.3 Branch Strategy
+
+| Branch | Purpose | Protection |
+|--------|---------|------------|
+| `main` | Production-ready code | ✅ Protected |
+| `auto-dev` | Active development branch | ✅ Protected (recommended) |
+| `develop` | Deprecated - use `auto-dev` instead | Not protected |
+| `openclaw/issue-*` | Per-issue feature branches | Auto-cleanup via `cleanup-branches.sh` |
+
+**Branch Cleanup**: `scripts/cleanup-branches.sh` handles deletion of merged PR branches
+after completion. Run with `--dry-run` to preview before actual deletion.
 
 ### 4.3 Recent Activity
 
