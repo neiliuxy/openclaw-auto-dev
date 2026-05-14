@@ -61,12 +61,22 @@ bool ends_with(const std::string& s, const std::string& suffix) {
 }
 
 std::string replace(const std::string& s, const std::string& from, const std::string& to) {
+    // Edge case: empty pattern - return original string unchanged
     if (from.empty()) return s;
+    // Edge case: empty source string - return empty
+    if (s.empty()) return s;
+    
     std::string result = s;
     size_t pos = 0;
     while ((pos = result.find(from, pos)) != std::string::npos) {
         result.replace(pos, from.size(), to);
-        pos += to.size();
+        // Prevent infinite loop when to contains from (e.g., replace("a", "aa", "b"))
+        // Move past the replaced text to avoid re-matching within it
+        if (to.empty()) {
+            pos++; // Special case: if replacement is empty, advance by 1 to avoid stuck in loop
+        } else {
+            pos += to.size();
+        }
     }
     return result;
 }
